@@ -387,6 +387,7 @@ a {
   height: 100%;
   width: var(--fill, 0%);
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-orange));
+  transition: transform 220ms ease, filter 220ms ease;
 }
 
 .game-list {
@@ -404,8 +405,34 @@ a {
 }
 
 .reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.js .reveal {
   opacity: 0;
   transform: translateY(18px);
+  transition: opacity 480ms ease, transform 480ms ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero.is-energized .hero__cta {
+  box-shadow: 0 0 0 1px rgba(83, 184, 255, 0.2), 0 0 34px rgba(255, 150, 68, 0.34);
+}
+
+.hero__cta:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 4px;
+}
+
+.game-zone__panel:hover .status-fill {
+  filter: brightness(1.15);
+  transform: scaleX(1.02);
+  transform-origin: left center;
 }
 
 @keyframes heroTitleIn {
@@ -443,5 +470,29 @@ a {
   .hero__hud--left,
   .hero__hud--right {
     font-size: 0.7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero__poster,
+  .subject-card:hover,
+  .interest-chip:hover,
+  .game-zone__panel:hover {
+    transform: none;
   }
 }
