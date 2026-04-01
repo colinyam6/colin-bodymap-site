@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Colin | Game-Tech Personal Site</title>
+    <meta
+      name="description"
+      content="Colin 的游戏科技风个人网站，展示他的兴趣、喜欢的科目、喜欢的书和游戏成就。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero" id="hero" data-parallax-root>
+      <div class="hero__backdrop" aria-hidden="true">
+        <div class="hero__grid"></div>
+        <div class="hero__glow hero__glow--blue"></div>
+        <div class="hero__glow hero__glow--orange"></div>
+        <div class="hero__scanline"></div>
+      </div>
+
+      <div class="hero__inner">
+        <p class="eyebrow reveal" data-reveal>Champion Entrance</p>
+        <h1 class="hero__title reveal" data-reveal>Colin</h1>
+        <p class="hero__meta reveal" data-reveal>五年级小学生 / AI 游戏创作者 / 热爱数学和科技</p>
+        <p class="hero__lede reveal" data-reveal>我是 Colin，我喜欢一边玩游戏，一边研究怎样用 AI 做出自己的游戏世界。</p>
+        <a class="hero__cta reveal" href="#about" data-reveal aria-label="Scroll to About section">Enter My Arena</a>
+      </div>
+
+      <div class="hero__poster" aria-hidden="true">
+        <div class="hero__ring"></div>
+        <div class="hero__silhouette"></div>
+        <div class="hero__hud hero__hud--left">
+          <span>PLAYER 01</span>
+          <span>AI GAME BUILDER</span>
+        </div>
+        <div class="hero__hud hero__hud--right">
+          <span>MATH MODE</span>
+          <span>TECH CORE</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="section section--about" id="about" data-reveal>
+        <p class="section-kicker">About Me</p>
+        <div class="about-copy">
+          <h2 class="section-heading">我是 Colin，一个喜欢游戏、科技、编程和创造的小学生。</h2>
+          <p>
+            我最喜欢一边玩游戏，一边研究怎样用 AI 做游戏。我也很喜欢数学、信息技术，还有各种让我越看越想继续探索的科学知识。
+          </p>
+        </div>
+      </section>
+
+      <section class="section reveal" id="subjects" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">Favorite Subjects</p>
+          <h2 class="section-heading">我最喜欢的科目</h2>
+        </div>
+        <div class="subject-grid">
+          <article class="subject-card">
+            <span class="subject-card__label">Skill 01</span>
+            <h3>数学</h3>
+            <p>我喜欢数字、规律，还有解开题目时像升级一样的感觉。</p>
+          </article>
+          <article class="subject-card">
+            <span class="subject-card__label">Skill 02</span>
+            <h3>信息技术</h3>
+            <p>我喜欢研究电脑、程序和 AI，想把它们变成我自己的游戏工具。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section reveal" id="book" data-reveal>
+        <div class="book-spotlight">
+          <p class="section-kicker">Favorite Book</p>
+          <h2 class="section-heading">《猫武士》</h2>
+          <p>我喜欢它勇敢、冒险、充满队伍感的世界，读起来很像进入另一场精彩的任务。</p>
+        </div>
+      </section>
+
+      <section class="section reveal" id="interests" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">Interests</p>
+          <h2 class="section-heading">我的兴趣爱好</h2>
+        </div>
+        <ul class="interest-grid">
+          <li class="interest-chip">打电脑游戏</li>
+          <li class="interest-chip">打乒乓球</li>
+          <li class="interest-chip">打匹克球</li>
+          <li class="interest-chip">研究编程</li>
+          <li class="interest-chip">看化学书</li>
+        </ul>
+      </section>
+
+      <section class="section reveal" id="games" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">Game Zone</p>
+          <h2 class="section-heading">玩家档案</h2>
+        </div>
+        <div class="game-zone__grid">
+          <article class="game-zone__panel" data-state="cleared">
+            <div class="game-zone__header">
+              <h3>已通关</h3>
+              <span class="status-tag">Achievement Unlocked</span>
+            </div>
+            <div class="status-track"><span class="status-fill" style="--fill: 100%"></span></div>
+            <ul class="game-list">
+              <li>大航海时代四</li>
+              <li>潜水员戴夫</li>
+              <li>黑神话：悟空</li>
+            </ul>
+          </article>
+
+          <article class="game-zone__panel" data-state="party">
+            <div class="game-zone__header">
+              <h3>常玩</h3>
+              <span class="status-tag">Squad Ready</span>
+            </div>
+            <div class="status-track"><span class="status-fill" style="--fill: 72%"></span></div>
+            <ul class="game-list">
+              <li>Pummel Party</li>
+            </ul>
+          </article>
+
+          <article class="game-zone__panel" data-state="current">
+            <div class="game-zone__header">
+              <h3>正在玩</h3>
+              <span class="status-tag">Current Quest</span>
+            </div>
+            <div class="status-track"><span class="status-fill" style="--fill: 84%"></span></div>
+            <ul class="game-list">
+              <li>艾尔登法环</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Player Colin, building the next level with games, math, and AI.</p>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
