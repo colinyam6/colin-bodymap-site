@@ -226,6 +226,183 @@ a {
   top: 24%;
 }
 
+.site-main {
+  position: relative;
+  z-index: 2;
+}
+
+.section {
+  padding: 5rem clamp(1.25rem, 4vw, 4rem);
+}
+
+.section-kicker {
+  margin: 0 0 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  font-weight: 700;
+}
+
+.section-heading {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(1.8rem, 4vw, 3.1rem);
+  line-height: 1.08;
+}
+
+.section-head,
+.about-copy {
+  max-width: 46rem;
+}
+
+.about-copy p,
+.subject-card p,
+.book-spotlight p,
+.game-list,
+.site-footer p {
+  color: var(--text-soft);
+  font-size: 1.02rem;
+}
+
+.subject-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.subject-card {
+  position: relative;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(10, 18, 32, 0.92), rgba(8, 12, 22, 0.96));
+  box-shadow: var(--shadow-heavy);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.subject-card:hover {
+  transform: translateY(-6px) rotateX(2deg);
+  border-color: rgba(83, 184, 255, 0.4);
+  box-shadow: 0 0 0 1px rgba(83, 184, 255, 0.18), var(--shadow-heavy);
+}
+
+.subject-card__label {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 150, 68, 0.86);
+}
+
+.book-spotlight {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+  border: 1px solid rgba(255, 150, 68, 0.24);
+  background: linear-gradient(135deg, rgba(14, 18, 35, 0.96), rgba(8, 12, 20, 1));
+}
+
+.book-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: auto -10% -30% auto;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 999px;
+  background: rgba(255, 150, 68, 0.16);
+  filter: blur(18px);
+}
+
+.interest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.85rem;
+  padding: 0;
+  margin: 1.5rem 0 0;
+  list-style: none;
+}
+
+.interest-chip {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  background: rgba(7, 14, 26, 0.86);
+  text-align: center;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.interest-chip:hover {
+  transform: translateY(-4px) skewX(-2deg);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: linear-gradient(90deg, rgba(83, 184, 255, 0.12), rgba(255, 150, 68, 0.12));
+}
+
+.game-zone__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.game-zone__panel {
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(8, 14, 24, 0.95), rgba(5, 10, 18, 0.98));
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.game-zone__panel[data-state="current"] {
+  border-color: rgba(255, 150, 68, 0.28);
+  box-shadow: 0 0 0 1px rgba(255, 150, 68, 0.1), var(--shadow-heavy);
+}
+
+.game-zone__panel:hover {
+  transform: translateY(-6px);
+  border-color: rgba(83, 184, 255, 0.42);
+}
+
+.game-zone__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.status-tag {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+}
+
+.status-track {
+  height: 8px;
+  margin: 1rem 0 1.1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.status-fill {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: linear-gradient(90deg, var(--accent-blue), var(--accent-orange));
+}
+
+.game-list {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.game-list li + li {
+  margin-top: 0.5rem;
+}
+
+.site-footer {
+  padding: 2rem 1.25rem 3rem;
+  text-align: center;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(18px);
@@ -256,6 +433,11 @@ a {
 
   .hero__poster {
     min-height: 24rem;
+  }
+
+  .subject-grid,
+  .game-zone__grid {
+    grid-template-columns: 1fr;
   }
 
   .hero__hud--left,

@@ -47,57 +47,104 @@
       </div>
     </header>
 
-    <main>
-      <section id="about">
-        <h2>关于我</h2>
-        <p>我是一个喜欢游戏、科技、编程和创造的小学生。</p>
+    <main class="site-main">
+      <section class="section section--about" id="about" data-reveal>
+        <p class="section-kicker">About Me</p>
+        <div class="about-copy">
+          <h2 class="section-heading">我是 Colin，一个喜欢游戏、科技、编程和创造的小学生。</h2>
+          <p>
+            我最喜欢一边玩游戏，一边研究怎样用 AI 做游戏。我也很喜欢数学、信息技术，还有各种让我越看越想继续探索的科学知识。
+          </p>
+        </div>
       </section>
 
-      <section id="subjects">
-        <h2>喜欢的科目</h2>
-        <ul>
-          <li>数学</li>
-          <li>信息技术</li>
+      <section class="section reveal" id="subjects" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">Favorite Subjects</p>
+          <h2 class="section-heading">我最喜欢的科目</h2>
+        </div>
+        <div class="subject-grid">
+          <article class="subject-card">
+            <span class="subject-card__label">Skill 01</span>
+            <h3>数学</h3>
+            <p>我喜欢数字、规律，还有解开题目时像升级一样的感觉。</p>
+          </article>
+          <article class="subject-card">
+            <span class="subject-card__label">Skill 02</span>
+            <h3>信息技术</h3>
+            <p>我喜欢研究电脑、程序和 AI，想把它们变成我自己的游戏工具。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section reveal" id="book" data-reveal>
+        <div class="book-spotlight">
+          <p class="section-kicker">Favorite Book</p>
+          <h2 class="section-heading">《猫武士》</h2>
+          <p>我喜欢它勇敢、冒险、充满队伍感的世界，读起来很像进入另一场精彩的任务。</p>
+        </div>
+      </section>
+
+      <section class="section reveal" id="interests" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">Interests</p>
+          <h2 class="section-heading">我的兴趣爱好</h2>
+        </div>
+        <ul class="interest-grid">
+          <li class="interest-chip">打电脑游戏</li>
+          <li class="interest-chip">打乒乓球</li>
+          <li class="interest-chip">打匹克球</li>
+          <li class="interest-chip">研究编程</li>
+          <li class="interest-chip">看化学书</li>
         </ul>
       </section>
 
-      <section id="book">
-        <h2>喜欢的书</h2>
-        <p>《猫武士》</p>
-      </section>
+      <section class="section reveal" id="games" data-reveal>
+        <div class="section-head">
+          <p class="section-kicker">Game Zone</p>
+          <h2 class="section-heading">玩家档案</h2>
+        </div>
+        <div class="game-zone__grid">
+          <article class="game-zone__panel" data-state="cleared">
+            <div class="game-zone__header">
+              <h3>已通关</h3>
+              <span class="status-tag">Achievement Unlocked</span>
+            </div>
+            <div class="status-track"><span class="status-fill" style="--fill: 100%"></span></div>
+            <ul class="game-list">
+              <li>大航海时代四</li>
+              <li>潜水员戴夫</li>
+              <li>黑神话：悟空</li>
+            </ul>
+          </article>
 
-      <section id="interests">
-        <h2>兴趣爱好</h2>
-        <ul>
-          <li>打电脑游戏</li>
-          <li>打乒乓球</li>
-          <li>打匹克球</li>
-          <li>研究编程</li>
-          <li>看化学书</li>
-        </ul>
-      </section>
+          <article class="game-zone__panel" data-state="party">
+            <div class="game-zone__header">
+              <h3>常玩</h3>
+              <span class="status-tag">Squad Ready</span>
+            </div>
+            <div class="status-track"><span class="status-fill" style="--fill: 72%"></span></div>
+            <ul class="game-list">
+              <li>Pummel Party</li>
+            </ul>
+          </article>
 
-      <section id="games">
-        <h2>游戏专区</h2>
-        <h3>已通关</h3>
-        <ul>
-          <li>大航海时代四</li>
-          <li>潜水员戴夫</li>
-          <li>黑神话：悟空</li>
-        </ul>
-        <h3>常玩</h3>
-        <ul>
-          <li>Pummel Party</li>
-        </ul>
-        <h3>正在玩</h3>
-        <ul>
-          <li>艾尔登法环</li>
-        </ul>
+          <article class="game-zone__panel" data-state="current">
+            <div class="game-zone__header">
+              <h3>正在玩</h3>
+              <span class="status-tag">Current Quest</span>
+            </div>
+            <div class="status-track"><span class="status-fill" style="--fill: 84%"></span></div>
+            <ul class="game-list">
+              <li>艾尔登法环</li>
+            </ul>
+          </article>
+        </div>
       </section>
     </main>
 
-    <footer>
-      <p>Player Colin, building the next level.</p>
+    <footer class="site-footer">
+      <p>Player Colin, building the next level with games, math, and AI.</p>
     </footer>
 
     <script type="module" src="script.js"></script>
