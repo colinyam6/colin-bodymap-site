@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { clamp, mapPointerToHeroState, getRevealOptions } from '../script.js';
+
+test('mapPointerToHeroState caps hero motion values', () => {
+  assert.deepEqual(mapPointerToHeroState({ x: 1.4, y: -1.4 }), {
+    rotateX: 6,
+    rotateY: 6,
+    shiftX: 18,
+    shiftY: -18,
+    glowX: 78,
+    glowY: 22
+  });
+});
+
+test('getRevealOptions disables threshold-heavy animation for reduced motion', () => {
+  assert.deepEqual(getRevealOptions(true), {
+    threshold: 0,
+    rootMargin: '0px 0px -6% 0px'
+  });
+
+  assert.deepEqual(getRevealOptions(false), {
+    threshold: 0.18,
+    rootMargin: '0px 0px -12% 0px'
+  });
+});
+
+test('clamp keeps values inside the configured range', () => {
+  assert.equal(clamp(-4, -2, 2), -2);
+  assert.equal(clamp(5, -2, 2), 2);
+});
