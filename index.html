@@ -8,16 +8,42 @@
       name="description"
       content="Colin 的游戏科技风个人网站，展示他的兴趣、喜欢的科目、喜欢的书和游戏成就。"
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="hero" id="hero">
+    <header class="hero" id="hero" data-parallax-root>
+      <div class="hero__backdrop" aria-hidden="true">
+        <div class="hero__grid"></div>
+        <div class="hero__glow hero__glow--blue"></div>
+        <div class="hero__glow hero__glow--orange"></div>
+        <div class="hero__scanline"></div>
+      </div>
+
       <div class="hero__inner">
-        <p class="eyebrow">PLAYER 01</p>
-        <h1>Colin</h1>
-        <p class="hero__meta">五年级小学生 / AI 游戏创作者 / 热爱数学和科技</p>
-        <p class="hero__lede">我是 Colin，我喜欢一边玩游戏，一边研究怎样用 AI 做出自己的游戏世界。</p>
-        <a class="hero__cta" href="#about">Enter My Arena</a>
+        <p class="eyebrow reveal" data-reveal>Champion Entrance</p>
+        <h1 class="hero__title reveal" data-reveal>Colin</h1>
+        <p class="hero__meta reveal" data-reveal>五年级小学生 / AI 游戏创作者 / 热爱数学和科技</p>
+        <p class="hero__lede reveal" data-reveal>我是 Colin，我喜欢一边玩游戏，一边研究怎样用 AI 做出自己的游戏世界。</p>
+        <a class="hero__cta reveal" href="#about" data-reveal aria-label="Scroll to About section">Enter My Arena</a>
+      </div>
+
+      <div class="hero__poster" aria-hidden="true">
+        <div class="hero__ring"></div>
+        <div class="hero__silhouette"></div>
+        <div class="hero__hud hero__hud--left">
+          <span>PLAYER 01</span>
+          <span>AI GAME BUILDER</span>
+        </div>
+        <div class="hero__hud hero__hud--right">
+          <span>MATH MODE</span>
+          <span>TECH CORE</span>
+        </div>
       </div>
     </header>
 
