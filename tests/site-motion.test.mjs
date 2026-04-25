@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clamp, mapPointerToHeroState, getRevealOptions } from '../script.js';
+import {
+  clamp,
+  getRevealOptions,
+  mapPointerToHeroState,
+  mapPointerToTiltState
+} from '../script.js';
 
 test('mapPointerToHeroState caps hero motion values', () => {
   assert.deepEqual(mapPointerToHeroState({ x: 1.4, y: -1.4 }), {
@@ -10,6 +15,15 @@ test('mapPointerToHeroState caps hero motion values', () => {
     shiftY: -18,
     glowX: 78,
     glowY: 22
+  });
+});
+
+test('mapPointerToTiltState bounds card tilt and highlight positions', () => {
+  assert.deepEqual(mapPointerToTiltState({ x: 1.6, y: -1.4 }), {
+    rotateX: 8,
+    rotateY: 10,
+    glowX: 100,
+    glowY: 0
   });
 });
 

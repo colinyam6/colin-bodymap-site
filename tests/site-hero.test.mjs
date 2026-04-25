@@ -5,34 +5,32 @@ import { readFileSync } from 'node:fs';
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-test('hero markup includes champion entrance layers', () => {
+test('hero markup includes the fiery body-stage layers', () => {
   const html = read('index.html');
 
   [
     'data-parallax-root',
-    'hero__poster',
-    'hero__ring',
-    'hero__silhouette',
-    'hero__hud hero__hud--left',
-    'hero__hud hero__hud--right',
-    'Champion Entrance'
+    'hero__body-stage',
+    'hero__body',
+    'hero__heat-ring',
+    'hero__flare',
+    'Heat Mode Online'
   ].forEach((token) => {
     assert.match(html, new RegExp(escapeRegExp(token)));
   });
 });
 
-test('hero styles define arena palette and entrance animation hooks', () => {
+test('hero styles define the warm palette and body-stage hooks', () => {
   const css = read('styles.css');
 
   [
-    '--accent-blue:',
-    '--accent-orange:',
+    '--accent-fire:',
+    '--accent-gold:',
     '.hero {',
-    '.hero__poster {',
-    '.hero__silhouette {',
-    '.hero__cta:hover {',
-    '@keyframes heroTitleIn',
-    '@media (max-width: 720px)'
+    '.hero__body-stage {',
+    '.hero__heat-ring {',
+    '.hero__body::before',
+    '@keyframes heatPulse'
   ].forEach((token) => {
     assert.match(css, new RegExp(escapeRegExp(token)));
   });

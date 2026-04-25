@@ -5,34 +5,31 @@ import { readFileSync } from 'node:fs';
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-test('index exposes the final layout hooks for sections and game panels', () => {
+test('index exposes body-map storytelling hooks and tilt cards', () => {
   const html = read('index.html');
 
   [
-    'section class="section section--about"',
-    'subject-grid',
-    'book-spotlight',
-    'interest-grid',
-    'game-zone__grid',
-    'data-state="cleared"',
-    'data-state="party"',
-    'data-state="current"'
+    'body-map__sticky',
+    'data-body-panel="mind"',
+    'data-body-panel="core"',
+    'data-body-hotspot="mind"',
+    'profile-card',
+    'data-tilt-card'
   ].forEach((token) => {
     assert.match(html, new RegExp(escapeRegExp(token)));
   });
 });
 
-test('styles define hover-ready layouts for subjects, interests, and game panels', () => {
+test('styles define sticky map and tilt-card treatments', () => {
   const css = read('styles.css');
 
   [
-    '.subject-grid {',
-    '.subject-card:hover {',
-    '.book-spotlight::before',
-    '.interest-grid {',
-    '.interest-chip:hover {',
-    '.game-zone__grid {',
-    '.game-zone__panel[data-state="current"]'
+    '.body-map {',
+    '.body-map__sticky {',
+    '.body-diagram__hotspot.is-active',
+    '.profile-card {',
+    '.profile-card::before',
+    '.profile-card:hover'
   ].forEach((token) => {
     assert.match(css, new RegExp(escapeRegExp(token)));
   });

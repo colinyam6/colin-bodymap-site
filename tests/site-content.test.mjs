@@ -5,38 +5,35 @@ import { readFileSync } from 'node:fs';
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-test('index wires the static site shell and required sections', () => {
+test('index wires the body-map site shell and required sections', () => {
   const html = read('index.html');
 
   assert.match(html, /<link rel="stylesheet" href="styles\.css"\s*\/?>/);
   assert.match(html, /<script type="module" src="script\.js"><\/script>/);
 
-  ['hero', 'about', 'subjects', 'book', 'interests', 'games'].forEach((id) => {
+  ['hero', 'body-map', 'profile-cards', 'closing'].forEach((id) => {
     assert.match(html, new RegExp(`<section[^>]+id="${id}"|<header[^>]+id="${id}"`, 'i'));
   });
 });
 
-test('index includes Colin profile copy and game inventory', () => {
+test('index includes Colin profile copy and updated interest inventory', () => {
   const html = read('index.html');
 
   [
     'Colin',
     '五年级小学生',
-    'AI 游戏创作者',
     '数学',
-    '信息技术',
-    '《猫武士》',
-    '打电脑游戏',
-    '打乒乓球',
-    '打匹克球',
-    '研究编程',
-    '看化学书',
+    '英语',
+    '篮球',
+    '足球',
+    '钢琴',
+    '猫武士',
+    '进击的学霸',
     '大航海时代四',
     '潜水员戴夫',
     '黑神话：悟空',
     'Pummel Party',
-    '艾尔登法环',
-    'Enter My Arena'
+    '艾尔登法环'
   ].forEach((token) => {
     assert.match(html, new RegExp(escapeRegExp(token)));
   });
