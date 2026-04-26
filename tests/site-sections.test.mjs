@@ -24,6 +24,7 @@ test('styles define sticky map and tilt-card treatments', () => {
   const css = read('styles.css');
 
   [
+    'assets/body-map-stage.png',
     '.body-map {',
     '.body-map__sticky {',
     '.body-diagram__hotspot.is-active',

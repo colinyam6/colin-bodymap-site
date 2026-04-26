@@ -26,6 +26,7 @@ test('hero styles define the warm palette and body-stage hooks', () => {
   [
     '--accent-fire:',
     '--accent-gold:',
+    'assets/hero-fiery-stage.png',
     '.hero {',
     '.hero__body-stage {',
     '.hero__heat-ring {',
