@@ -13,7 +13,10 @@ test('index exposes body-map storytelling hooks and tilt cards', () => {
     'data-body-panel="mind"',
     'data-body-panel="core"',
     'data-body-hotspot="mind"',
+    'body-diagram__warrior-svg',
+    'body-diagram__weapon',
     'profile-card',
+    'profile-card__blade',
     'data-tilt-card'
   ].forEach((token) => {
     assert.match(html, new RegExp(escapeRegExp(token)));
@@ -24,13 +27,16 @@ test('styles define sticky map and tilt-card treatments', () => {
   const css = read('styles.css');
 
   [
-    'assets/body-map-stage.png',
     '.body-map {',
     '.body-map__sticky {',
+    '.body-diagram__warrior-svg {',
+    '.body-diagram__weapon {',
     '.body-diagram__hotspot.is-active',
     '.profile-card {',
     '.profile-card::before',
-    '.profile-card:hover'
+    '.profile-card__blade {',
+    '.profile-card:hover',
+    '.body-info::before'
   ].forEach((token) => {
     assert.match(css, new RegExp(escapeRegExp(token)));
   });

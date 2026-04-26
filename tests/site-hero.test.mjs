@@ -11,8 +11,10 @@ test('hero markup includes the fiery body-stage layers', () => {
   [
     'data-parallax-root',
     'hero__body-stage',
-    'hero__body',
-    'hero__heat-ring',
+    'hero__warrior-svg',
+    'hero__warrior-core',
+    'hero__blade',
+    'hero__slash',
     'hero__flare',
     'Heat Mode Online'
   ].forEach((token) => {
@@ -26,12 +28,12 @@ test('hero styles define the warm palette and body-stage hooks', () => {
   [
     '--accent-fire:',
     '--accent-gold:',
-    'assets/hero-fiery-stage.png',
     '.hero {',
     '.hero__body-stage {',
-    '.hero__heat-ring {',
-    '.hero__body::before',
-    '@keyframes heatPulse'
+    '.hero__warrior-svg {',
+    '.hero__blade {',
+    '.hero__slash {',
+    '@keyframes bladeSweep'
   ].forEach((token) => {
     assert.match(css, new RegExp(escapeRegExp(token)));
   });
