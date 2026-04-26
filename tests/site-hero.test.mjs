@@ -11,8 +11,7 @@ test('hero markup includes the fiery body-stage layers', () => {
   [
     'data-parallax-root',
     'hero__body-stage',
-    'hero__warrior-svg',
-    'hero__warrior-core',
+    'hero__poster',
     'hero__blade',
     'hero__slash',
     'hero__flare',
@@ -28,9 +27,10 @@ test('hero styles define the warm palette and body-stage hooks', () => {
   [
     '--accent-fire:',
     '--accent-gold:',
+    'assets/hero-energy-warrior.png',
     '.hero {',
     '.hero__body-stage {',
-    '.hero__warrior-svg {',
+    '.hero__poster {',
     '.hero__blade {',
     '.hero__slash {',
     '@keyframes bladeSweep'
