@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Colin | Fiery Body Map</title>
+    <meta
+      name="description"
+      content="Colin 的热血个人网站，用人体信息地图展示他的学习、阅读、运动和游戏能量。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero" id="hero" data-parallax-root>
+      <div class="hero__backdrop" aria-hidden="true">
+        <div class="hero__ember-field"></div>
+        <div class="hero__flare hero__flare--left"></div>
+        <div class="hero__flare hero__flare--right"></div>
+        <div class="hero__scan"></div>
+      </div>
+      <div class="section-deco section-deco--hero-left" aria-hidden="true"></div>
+      <div class="section-deco section-deco--hero-bottom" aria-hidden="true"></div>
+      <div class="section-deco section-deco--hero-mid" aria-hidden="true"></div>
+      <div class="section-deco section-deco--hero-right" aria-hidden="true"></div>
+
+      <div class="hero__copy">
+        <p class="hero__eyebrow reveal" data-reveal>Heat Mode Online</p>
+        <h1 class="hero__title reveal" data-reveal>Colin</h1>
+        <p class="hero__meta reveal" data-reveal>五年级小学生 / 数学英语强 / 超爱游戏</p>
+        <p class="hero__lede reveal" data-reveal>
+          这是一张我的热血身体信息地图，往下滑就能解锁学习脑力、阅读热爱、运动冲劲和游戏能量核心。
+        </p>
+        <a class="hero__cta reveal" href="#body-map" data-reveal>下滑解锁</a>
+      </div>
+
+      <div class="hero__body-stage" aria-hidden="true">
+        <div class="hero__stage-glow"></div>
+        <div class="hero__poster"></div>
+        <div class="hero__blend"></div>
+        <div class="hero__ambient hero__ambient--left"></div>
+        <div class="hero__ambient hero__ambient--lower"></div>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="section section--map" id="body-map">
+        <div class="section-head section-head--wide reveal" data-reveal>
+          <p class="section-kicker">Body Map</p>
+          <h2 class="section-heading">人体就是我的个人信息地图</h2>
+          <p class="section-intro">
+            每个发光部位都代表我的一个侧面，越往下滑，越能看到我的主角设定。
+          </p>
+        </div>
+        <div class="section-deco section-deco--map-left" aria-hidden="true"></div>
+        <div class="section-deco section-deco--map-right" aria-hidden="true"></div>
+        <div class="section-deco section-deco--map-top" aria-hidden="true"></div>
+        <div class="section-deco section-deco--map-bottom" aria-hidden="true"></div>
+
+        <div class="body-map">
+          <div class="body-map__sticky">
+            <div class="body-diagram" data-body-diagram>
+              <div class="body-diagram__glow"></div>
+              <div class="body-diagram__poster"></div>
+              <div class="body-diagram__blend"></div>
+
+              <button
+                class="body-diagram__hotspot body-diagram__hotspot--mind is-active"
+                data-body-hotspot="mind"
+                type="button"
+              >
+                <span>头部</span>
+                <strong>数学 / 英语</strong>
+              </button>
+              <button
+                class="body-diagram__hotspot body-diagram__hotspot--heart"
+                data-body-hotspot="heart"
+                type="button"
+              >
+                <span>胸口</span>
+                <strong>阅读核心</strong>
+              </button>
+              <button
+                class="body-diagram__hotspot body-diagram__hotspot--hands"
+                data-body-hotspot="hands"
+                type="button"
+              >
+                <span>手部</span>
+                <strong>钢琴技能</strong>
+              </button>
+              <button
+                class="body-diagram__hotspot body-diagram__hotspot--legs"
+                data-body-hotspot="legs"
+                type="button"
+              >
+                <span>腿部</span>
+                <strong>篮球 / 足球</strong>
+              </button>
+              <button
+                class="body-diagram__hotspot body-diagram__hotspot--core"
+                data-body-hotspot="core"
+                type="button"
+              >
+                <span>核心</span>
+                <strong>最强游戏能量</strong>
+              </button>
+              <button
+                class="body-diagram__hotspot body-diagram__hotspot--squad"
+                data-body-hotspot="squad"
+                type="button"
+              >
+                <span>外圈</span>
+                <strong>Pummel Party / 艾尔登法环</strong>
+              </button>
+            </div>
+          </div>
+
+          <div class="body-map__story">
+            <article class="body-info body-info--mind is-active reveal" data-body-panel="mind" data-reveal>
+              <span class="body-info__art" aria-hidden="true"></span>
+              <p class="section-kicker">Head</p>
+              <h3>学习脑力很强</h3>
+              <p>我是五年级小学生，学习成绩很好，尤其喜欢数学和英语。</p>
+            </article>
+
+            <article class="body-info body-info--heart reveal" data-body-panel="heart" data-reveal>
+              <span class="body-info__art" aria-hidden="true"></span>
+              <p class="section-kicker">Heart</p>
+              <h3>胸口装着很多故事</h3>
+              <p>我读过很多书，比如《猫武士》和《进击的学霸》，越读越想继续往下翻。</p>
+            </article>
+
+            <article class="body-info body-info--hands reveal" data-body-panel="hands" data-reveal>
+              <span class="body-info__art" aria-hidden="true"></span>
+              <p class="section-kicker">Hands</p>
+              <h3>会弹钢琴，但不是主线</h3>
+              <p>我会弹钢琴，不过它更像一个已经点亮的技能，不是我最喜欢的事情。</p>
+            </article>
+
+            <article class="body-info body-info--legs reveal" data-body-panel="legs" data-reveal>
+              <span class="body-info__art" aria-hidden="true"></span>
+              <p class="section-kicker">Legs</p>
+              <h3>喜欢冲起来</h3>
+              <p>我喜欢打篮球和踢足球，虽然不是特别厉害，但运动的时候真的很开心。</p>
+            </article>
+
+            <article class="body-info body-info--game reveal" data-body-panel="core" data-reveal>
+              <span class="body-info__art" aria-hidden="true"></span>
+              <p class="section-kicker">Core</p>
+              <h3>最强能量来自游戏</h3>
+              <p>
+                我最喜欢打游戏，已经通关《大航海时代四》《潜水员戴夫》和《黑神话：悟空》。
+              </p>
+            </article>
+
+            <article class="body-info body-info--squad reveal" data-body-panel="squad" data-reveal>
+              <span class="body-info__art" aria-hidden="true"></span>
+              <p class="section-kicker">Squad</p>
+              <h3>和同学一起玩更欢乐</h3>
+              <p>我喜欢和同学玩 Pummel Party，现在也正在玩《艾尔登法环》。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--cards" id="profile-cards">
+        <div class="section-head reveal" data-reveal>
+          <p class="section-kicker">Profile Cards</p>
+          <h2 class="section-heading">下面这些是我的热血档案卡</h2>
+          <p class="section-intro">
+            往下看会更像角色设定页，每张卡都对应我的一个高亮属性。
+          </p>
+        </div>
+        <div class="section-deco section-deco--cards-top" aria-hidden="true"></div>
+        <div class="section-deco section-deco--cards-middle" aria-hidden="true"></div>
+        <div class="section-deco section-deco--cards-band" aria-hidden="true"></div>
+
+        <div class="profile-grid">
+          <article class="profile-card profile-card--mind reveal" data-reveal data-tilt-card>
+            <span class="profile-card__art" aria-hidden="true"></span>
+            <p class="profile-card__kicker">Learning Core</p>
+            <h3>数学和英语最亮</h3>
+            <p>我喜欢数字、规律和学英语时不断升级的感觉。</p>
+          </article>
+
+          <article class="profile-card profile-card--heart reveal" data-reveal data-tilt-card>
+            <span class="profile-card__art" aria-hidden="true"></span>
+            <p class="profile-card__kicker">Reading Heart</p>
+            <h3>读过很多书</h3>
+            <p>《猫武士》和《进击的学霸》都让我想继续冲进故事里。</p>
+          </article>
+
+          <article class="profile-card profile-card--legs reveal" data-reveal data-tilt-card>
+            <span class="profile-card__art" aria-hidden="true"></span>
+            <p class="profile-card__kicker">Sports Drive</p>
+            <h3>喜欢篮球和足球</h3>
+            <p>虽然不是专业选手，但我很喜欢跑起来、冲起来的感觉。</p>
+          </article>
+
+          <article class="profile-card profile-card--hands reveal" data-reveal data-tilt-card>
+            <span class="profile-card__art" aria-hidden="true"></span>
+            <p class="profile-card__kicker">Piano Skill</p>
+            <h3>会弹，但不是最爱</h3>
+            <p>钢琴像一个已经学会的技能，不过不是我的主角爱好。</p>
+          </article>
+
+          <article class="profile-card profile-card--game reveal" data-reveal data-tilt-card>
+            <span class="profile-card__art" aria-hidden="true"></span>
+            <p class="profile-card__kicker">Game Reactor</p>
+            <h3>游戏能量最强</h3>
+            <p>通关喜欢的作品，会让我有一种角色升级成功的感觉。</p>
+          </article>
+
+          <article class="profile-card profile-card--squad reveal" data-reveal data-tilt-card>
+            <span class="profile-card__art" aria-hidden="true"></span>
+            <p class="profile-card__kicker">Squad Mode</p>
+            <h3>和同学玩更开心</h3>
+            <p>Pummel Party 很欢乐，而《艾尔登法环》还在继续冒险。</p>
+          </article>
+        </div>
+        <div class="section-deco section-deco--cards-bottom" aria-hidden="true"></div>
+      </section>
+
+      <section class="section section--closing" id="closing">
+        <div class="section-deco section-deco--closing" aria-hidden="true"></div>
+        <div class="section-deco section-deco--closing-left" aria-hidden="true"></div>
+        <div class="section-deco section-deco--closing-center" aria-hidden="true"></div>
+        <p class="section-kicker reveal" data-reveal>Next Level</p>
+        <h2 class="section-heading reveal" data-reveal>Colin 还在继续升级中。</h2>
+        <p class="closing-copy reveal" data-reveal>
+          学习、运动、阅读、游戏和新的冒险，还会继续点亮更多区域。
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Hot-blooded profile online. Colin is still leveling up.</p>
+    </footer>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
