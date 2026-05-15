@@ -31,6 +31,26 @@ export const getRevealOptions = (reducedMotion) => ({
   rootMargin: reducedMotion ? '0px 0px -6% 0px' : '0px 0px -12% 0px'
 });
 
+export const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer && hasHover;
+
+const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;
+const queueFrame = (win, callback) => {
+  if (win.requestAnimationFrame) {
+    return win.requestAnimationFrame(callback);
+  }
+
+  return win.setTimeout(callback, 16);
+};
+
+const cancelQueuedFrame = (win, id) => {
+  if (win.cancelAnimationFrame) {
+    win.cancelAnimationFrame(id);
+    return;
+  }
+
+  win.clearTimeout?.(id);
+};
+
 const setVisible = (elements) => {
   elements.forEach((element) => element.classList.add('is-visible'));
 };
@@ -78,18 +98,27 @@ const initBodyMap = (doc, win, reducedMotion) => {
   panels.forEach((panel) => observer.observe(panel));
 };
 
-const initTiltCards = (doc, reducedMotion) => {
+const initTiltCards = (doc, win, enablePointerEffects) => {
   const cards = [...doc.querySelectorAll('[data-tilt-card]')];
 
-  if (reducedMotion) {
+  if (!enablePointerEffects) {
     return;
   }
 
   cards.forEach((card) => {
-    card.addEventListener('pointermove', (event) => {
+    let pendingPointer = null;
+    let frameId = 0;
+
+    const updateTilt = () => {
+      frameId = 0;
+
+      if (!pendingPointer) {
+        return;
+      }
+
       const bounds = card.getBoundingClientRect();
-      const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
+      const x = ((pendingPointer.clientX - bounds.left) / bounds.width) * 2 - 1;
+      const y = ((pendingPointer.clientY - bounds.top) / bounds.height) * 2 - 1;
       const state = mapPointerToTiltState({ x, y });
 
       card.classList.add('is-tilting');
@@ -97,9 +126,27 @@ const initTiltCards = (doc, reducedMotion) => {
       card.style.setProperty('--card-rotate-y', `${state.rotateY}deg`);
       card.style.setProperty('--card-glow-x', `${state.glowX}%`);
       card.style.setProperty('--card-glow-y', `${state.glowY}%`);
-    });
+    };
+
+    card.addEventListener('pointermove', (event) => {
+      pendingPointer = {
+        clientX: event.clientX,
+        clientY: event.clientY
+      };
+
+      if (!frameId) {
+        frameId = queueFrame(win, updateTilt);
+      }
+    }, { passive: true });
 
     card.addEventListener('pointerleave', () => {
+      pendingPointer = null;
+
+      if (frameId) {
+        cancelQueuedFrame(win, frameId);
+        frameId = 0;
+      }
+
       card.classList.remove('is-tilting');
       card.style.removeProperty('--card-rotate-x');
       card.style.removeProperty('--card-rotate-y');
@@ -110,13 +157,18 @@ const initTiltCards = (doc, reducedMotion) => {
 };
 
 export function initSite(doc = document, win = window) {
-  const reducedMotion = win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reducedMotion = matchesMedia(win, '(prefers-reduced-motion: reduce)');
+  const enablePointerEffects = !reducedMotion && shouldEnablePointerEffects(
+    matchesMedia(win, '(pointer: fine)'),
+    matchesMedia(win, '(hover: hover)')
+  );
   const revealItems = [...doc.querySelectorAll('[data-reveal]')];
   const hero = doc.querySelector('[data-parallax-root]');
   const cta = doc.querySelector('.hero__cta');
 
   doc.documentElement.classList.add('js', 'is-ready');
   doc.documentElement.classList.toggle('reduce-motion', reducedMotion);
+  doc.documentElement.classList.toggle('pointer-effects', enablePointerEffects);
 
   if (reducedMotion || !('IntersectionObserver' in win)) {
     setVisible(revealItems);
@@ -135,11 +187,20 @@ export function initSite(doc = document, win = window) {
     revealItems.forEach((item) => observer.observe(item));
   }
 
-  if (hero && !reducedMotion) {
-    hero.addEventListener('pointermove', (event) => {
+  if (hero && enablePointerEffects) {
+    let pendingHeroPointer = null;
+    let heroFrameId = 0;
+
+    const updateHeroPointer = () => {
+      heroFrameId = 0;
+
+      if (!pendingHeroPointer) {
+        return;
+      }
+
       const bounds = hero.getBoundingClientRect();
-      const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
+      const x = ((pendingHeroPointer.clientX - bounds.left) / bounds.width) * 2 - 1;
+      const y = ((pendingHeroPointer.clientY - bounds.top) / bounds.height) * 2 - 1;
       const state = mapPointerToHeroState({ x, y });
 
       hero.style.setProperty('--pointer-rotate-x', `${state.rotateX}`);
@@ -148,9 +209,27 @@ export function initSite(doc = document, win = window) {
       hero.style.setProperty('--pointer-shift-y', `${state.shiftY}`);
       hero.style.setProperty('--pointer-glow-x', `${state.glowX}%`);
       hero.style.setProperty('--pointer-glow-y', `${state.glowY}%`);
-    });
+    };
+
+    hero.addEventListener('pointermove', (event) => {
+      pendingHeroPointer = {
+        clientX: event.clientX,
+        clientY: event.clientY
+      };
+
+      if (!heroFrameId) {
+        heroFrameId = queueFrame(win, updateHeroPointer);
+      }
+    }, { passive: true });
 
     hero.addEventListener('pointerleave', () => {
+      pendingHeroPointer = null;
+
+      if (heroFrameId) {
+        cancelQueuedFrame(win, heroFrameId);
+        heroFrameId = 0;
+      }
+
       ['--pointer-rotate-x', '--pointer-rotate-y', '--pointer-shift-x', '--pointer-shift-y'].forEach((token) => {
         hero.style.setProperty(token, '0');
       });
@@ -165,7 +244,7 @@ export function initSite(doc = document, win = window) {
   }
 
   initBodyMap(doc, win, reducedMotion);
-  initTiltCards(doc, reducedMotion);
+  initTiltCards(doc, win, enablePointerEffects);
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
