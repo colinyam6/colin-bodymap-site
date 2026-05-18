@@ -16,7 +16,31 @@
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="is-loading">
+    <div class="site-loader" data-site-loader role="status" aria-live="polite" aria-label="正在加载网站素材">
+      <div class="site-loader__signal" aria-hidden="true"></div>
+      <p class="site-loader__kicker">Loading Energy</p>
+      <strong>Colin</strong>
+      <span class="site-loader__bar" aria-hidden="true"><span></span></span>
+      <p class="site-loader__copy">正在加载角色能量素材...</p>
+    </div>
+
+    <noscript>
+      <style>
+        body.is-loading .site-main,
+        body.is-loading .hero,
+        body.is-loading .site-footer {
+          opacity: 1;
+          pointer-events: auto;
+          user-select: auto;
+        }
+
+        .site-loader {
+          display: none;
+        }
+      </style>
+    </noscript>
+
     <header class="hero" id="hero" data-parallax-root>
       <div class="hero__backdrop" aria-hidden="true">
         <div class="hero__ember-field"></div>
@@ -48,7 +72,7 @@
       </div>
     </header>
 
-    <main class="site-main">
+    <main class="site-main" data-site-app inert>
       <section class="section section--map" id="body-map">
         <div class="section-head section-head--wide reveal" data-reveal>
           <p class="section-kicker">Body Map</p>
@@ -242,6 +266,22 @@
       <p>Hot-blooded profile online. Colin is still leveling up.</p>
     </footer>
 
-    <script type="module" src="script.js"></script>
+    <script data-loader-fallback>
+      (() => {
+        const release = () => {
+          if (!document.body.classList.contains('is-loading')) {
+            return;
+          }
+
+          document.body.classList.remove('is-loading');
+          document.body.classList.add('is-loaded');
+          document.querySelector('[data-site-app]')?.removeAttribute('inert');
+          document.querySelector('[data-site-loader]')?.setAttribute('aria-hidden', 'true');
+        };
+
+        window.setTimeout(release, 3200);
+      })();
+    </script>
+    <script src="script.js"></script>
   </body>
 </html>

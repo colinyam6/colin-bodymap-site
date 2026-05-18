@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import {
+import { loadScriptApi } from './script-api.mjs';
+
+const {
   shouldEnablePointerEffects
-} from '../script.js';
+} = loadScriptApi();
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 

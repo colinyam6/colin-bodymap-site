@@ -1,14 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
+import { loadScriptApi } from './script-api.mjs';
+
+const {
   clamp,
   getRevealOptions,
   mapPointerToHeroState,
   mapPointerToTiltState
-} from '../script.js';
+} = loadScriptApi();
+
+const plain = (value) => ({ ...value });
 
 test('mapPointerToHeroState caps hero motion values', () => {
-  assert.deepEqual(mapPointerToHeroState({ x: 1.4, y: -1.4 }), {
+  assert.deepEqual(plain(mapPointerToHeroState({ x: 1.4, y: -1.4 })), {
     rotateX: 6,
     rotateY: 6,
     shiftX: 18,
@@ -19,7 +23,7 @@ test('mapPointerToHeroState caps hero motion values', () => {
 });
 
 test('mapPointerToTiltState bounds card tilt and highlight positions', () => {
-  assert.deepEqual(mapPointerToTiltState({ x: 1.6, y: -1.4 }), {
+  assert.deepEqual(plain(mapPointerToTiltState({ x: 1.6, y: -1.4 })), {
     rotateX: 8,
     rotateY: 10,
     glowX: 100,
@@ -28,12 +32,12 @@ test('mapPointerToTiltState bounds card tilt and highlight positions', () => {
 });
 
 test('getRevealOptions disables threshold-heavy animation for reduced motion', () => {
-  assert.deepEqual(getRevealOptions(true), {
+  assert.deepEqual(plain(getRevealOptions(true)), {
     threshold: 0,
     rootMargin: '0px 0px -6% 0px'
   });
 
-  assert.deepEqual(getRevealOptions(false), {
+  assert.deepEqual(plain(getRevealOptions(false)), {
     threshold: 0.18,
     rootMargin: '0px 0px -12% 0px'
   });
