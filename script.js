@@ -44,7 +44,7 @@ const getPreloadAssetUrls = () => [
   'assets/ambient-vertical-cascade.webp'
 ];
 
-const minimumLoaderMs = 650;
+const minimumLoaderMs = 1500;
 const assetReadyRatio = 2 / 3;
 const assetWaitTimeoutMs = 2400;
 const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;

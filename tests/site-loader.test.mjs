@@ -255,7 +255,7 @@ test('bootSite keeps the loader visible for a short minimum duration', async () 
   await Promise.resolve();
 
   assert.equal(classList.has('is-loading'), true);
-  timeouts.find((timeout) => timeout.delay === 650).callback();
+  timeouts.find((timeout) => timeout.delay === 1500).callback();
   await boot;
 
   assert.equal(classList.has('is-loading'), false);
