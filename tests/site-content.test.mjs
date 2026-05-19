@@ -9,8 +9,7 @@ test('index wires the body-map site shell and required sections', () => {
   const html = read('index.html');
 
   assert.match(html, /<link rel="stylesheet" href="styles\.css"\s*\/?>/);
-  assert.match(html, /<script src="script\.js"><\/script>/);
-  assert.doesNotMatch(html, /<script type="module" src="script\.js"><\/script>/);
+  assert.match(html, /<script type="module" src="script\.js"><\/script>/);
 
   ['hero', 'body-map', 'profile-cards', 'closing'].forEach((id) => {
     assert.match(html, new RegExp(`<section[^>]+id="${id}"|<header[^>]+id="${id}"`, 'i'));
