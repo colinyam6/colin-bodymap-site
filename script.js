@@ -1,6 +1,6 @@
-export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-export const mapPointerToHeroState = ({ x, y }) => {
+const mapPointerToHeroState = ({ x, y }) => {
   const safeX = clamp(x, -1, 1);
   const safeY = clamp(y, -1, 1);
 
@@ -14,7 +14,7 @@ export const mapPointerToHeroState = ({ x, y }) => {
   };
 };
 
-export const mapPointerToTiltState = ({ x, y }) => {
+const mapPointerToTiltState = ({ x, y }) => {
   const safeX = clamp(x, -1, 1);
   const safeY = clamp(y, -1, 1);
 
@@ -26,13 +26,145 @@ export const mapPointerToTiltState = ({ x, y }) => {
   };
 };
 
-export const getRevealOptions = (reducedMotion) => ({
+const getRevealOptions = (reducedMotion) => ({
   threshold: reducedMotion ? 0 : 0.18,
   rootMargin: reducedMotion ? '0px 0px -6% 0px' : '0px 0px -12% 0px'
 });
 
+const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer && hasHover;
+
+const getPreloadAssetUrls = () => [
+  'assets/hero-energy-warrior-cutout.webp',
+  'assets/body-map-energy-warrior-cutout.webp',
+  'assets/cards-theme-atlas-cutout.webp',
+  'assets/ambient-banner-constellation-cutout.webp',
+  'assets/ambient-horizon-glow.webp',
+  'assets/ambient-soft-motifs.webp',
+  'assets/ambient-banner-emberflow.webp',
+  'assets/ambient-vertical-cascade.webp'
+];
+
+const minimumLoaderMs = 650;
+const assetReadyRatio = 2 / 3;
+const assetWaitTimeoutMs = 2400;
+const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;
+const scheduleTimeout = (win, callback, delay) => (win.setTimeout || setTimeout)(callback, delay);
+const cancelTimeout = (win, id) => {
+  if (win.clearTimeout) {
+    win.clearTimeout(id);
+    return;
+  }
+
+  clearTimeout(id);
+};
+const queueFrame = (win, callback) => {
+  if (win.requestAnimationFrame) {
+    return win.requestAnimationFrame(callback);
+  }
+
+  return win.setTimeout(callback, 16);
+};
+
+const cancelQueuedFrame = (win, id) => {
+  if (win.cancelAnimationFrame) {
+    win.cancelAnimationFrame(id);
+    return;
+  }
+
+  win.clearTimeout?.(id);
+};
+
 const setVisible = (elements) => {
   elements.forEach((element) => element.classList.add('is-visible'));
+};
+
+const preloadImage = (win, url) => new Promise((resolve) => {
+  const image = new win.Image();
+
+  image.onload = () => resolve({ ok: true, url });
+  image.onerror = () => resolve({ ok: false, url });
+  image.decoding = 'async';
+  image.src = url;
+});
+
+function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(), options = {}) {
+  const total = urls.length;
+  const timeoutMs = options.timeoutMs ?? assetWaitTimeoutMs;
+  const readyTarget = total ? Math.max(1, Math.ceil(total * (options.minimumReadyRatio ?? assetReadyRatio))) : 0;
+
+  if (!total) {
+    return Promise.resolve({
+      failed: 0,
+      loaded: 0,
+      ready: true,
+      timedOut: false,
+      total
+    });
+  }
+
+  return new Promise((resolve) => {
+    let settled = 0;
+    let loaded = 0;
+    let failed = 0;
+    let complete = false;
+    const timerId = timeoutMs > 0
+      ? scheduleTimeout(win, () => finish(true), timeoutMs)
+      : 0;
+
+    const finish = (timedOut) => {
+      if (complete) {
+        return;
+      }
+
+      complete = true;
+
+      if (timerId) {
+        cancelTimeout(win, timerId);
+      }
+
+      resolve({
+        failed,
+        loaded,
+        ready: loaded >= readyTarget,
+        timedOut,
+        total
+      });
+    };
+
+    urls.forEach((url) => {
+      preloadImage(win, url).then((result) => {
+        if (complete) {
+          return;
+        }
+
+        settled += 1;
+
+        if (result.ok) {
+          loaded += 1;
+        } else {
+          failed += 1;
+        }
+
+        if (loaded >= readyTarget || settled === total) {
+          finish(false);
+        }
+      });
+    });
+  });
+}
+
+const waitForMinimumLoaderTime = (win = window, duration = minimumLoaderMs) => new Promise((resolve) => {
+  win.setTimeout(resolve, duration);
+});
+
+const releaseLoadingScreen = (doc = document) => {
+  const app = doc.querySelector('[data-site-app]');
+  const loader = doc.querySelector('[data-site-loader]');
+
+  doc.body.classList.remove('is-loading');
+  doc.body.classList.add('is-loaded');
+  app?.removeAttribute('inert');
+  loader?.setAttribute('aria-hidden', 'true');
 };
 
 const syncActiveBodyPanel = (doc, id) => {
@@ -78,18 +210,27 @@ const initBodyMap = (doc, win, reducedMotion) => {
   panels.forEach((panel) => observer.observe(panel));
 };
 
-const initTiltCards = (doc, reducedMotion) => {
+const initTiltCards = (doc, win, enablePointerEffects) => {
   const cards = [...doc.querySelectorAll('[data-tilt-card]')];
 
-  if (reducedMotion) {
+  if (!enablePointerEffects) {
     return;
   }
 
   cards.forEach((card) => {
-    card.addEventListener('pointermove', (event) => {
+    let pendingPointer = null;
+    let frameId = 0;
+
+    const updateTilt = () => {
+      frameId = 0;
+
+      if (!pendingPointer) {
+        return;
+      }
+
       const bounds = card.getBoundingClientRect();
-      const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
+      const x = ((pendingPointer.clientX - bounds.left) / bounds.width) * 2 - 1;
+      const y = ((pendingPointer.clientY - bounds.top) / bounds.height) * 2 - 1;
       const state = mapPointerToTiltState({ x, y });
 
       card.classList.add('is-tilting');
@@ -97,9 +238,27 @@ const initTiltCards = (doc, reducedMotion) => {
       card.style.setProperty('--card-rotate-y', `${state.rotateY}deg`);
       card.style.setProperty('--card-glow-x', `${state.glowX}%`);
       card.style.setProperty('--card-glow-y', `${state.glowY}%`);
-    });
+    };
+
+    card.addEventListener('pointermove', (event) => {
+      pendingPointer = {
+        clientX: event.clientX,
+        clientY: event.clientY
+      };
+
+      if (!frameId) {
+        frameId = queueFrame(win, updateTilt);
+      }
+    }, { passive: true });
 
     card.addEventListener('pointerleave', () => {
+      pendingPointer = null;
+
+      if (frameId) {
+        cancelQueuedFrame(win, frameId);
+        frameId = 0;
+      }
+
       card.classList.remove('is-tilting');
       card.style.removeProperty('--card-rotate-x');
       card.style.removeProperty('--card-rotate-y');
@@ -109,14 +268,19 @@ const initTiltCards = (doc, reducedMotion) => {
   });
 };
 
-export function initSite(doc = document, win = window) {
-  const reducedMotion = win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function initSite(doc = document, win = window) {
+  const reducedMotion = matchesMedia(win, '(prefers-reduced-motion: reduce)');
+  const enablePointerEffects = !reducedMotion && shouldEnablePointerEffects(
+    matchesMedia(win, '(pointer: fine)'),
+    matchesMedia(win, '(hover: hover)')
+  );
   const revealItems = [...doc.querySelectorAll('[data-reveal]')];
   const hero = doc.querySelector('[data-parallax-root]');
   const cta = doc.querySelector('.hero__cta');
 
   doc.documentElement.classList.add('js', 'is-ready');
   doc.documentElement.classList.toggle('reduce-motion', reducedMotion);
+  doc.documentElement.classList.toggle('pointer-effects', enablePointerEffects);
 
   if (reducedMotion || !('IntersectionObserver' in win)) {
     setVisible(revealItems);
@@ -135,11 +299,20 @@ export function initSite(doc = document, win = window) {
     revealItems.forEach((item) => observer.observe(item));
   }
 
-  if (hero && !reducedMotion) {
-    hero.addEventListener('pointermove', (event) => {
+  if (hero && enablePointerEffects) {
+    let pendingHeroPointer = null;
+    let heroFrameId = 0;
+
+    const updateHeroPointer = () => {
+      heroFrameId = 0;
+
+      if (!pendingHeroPointer) {
+        return;
+      }
+
       const bounds = hero.getBoundingClientRect();
-      const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-      const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
+      const x = ((pendingHeroPointer.clientX - bounds.left) / bounds.width) * 2 - 1;
+      const y = ((pendingHeroPointer.clientY - bounds.top) / bounds.height) * 2 - 1;
       const state = mapPointerToHeroState({ x, y });
 
       hero.style.setProperty('--pointer-rotate-x', `${state.rotateX}`);
@@ -148,9 +321,27 @@ export function initSite(doc = document, win = window) {
       hero.style.setProperty('--pointer-shift-y', `${state.shiftY}`);
       hero.style.setProperty('--pointer-glow-x', `${state.glowX}%`);
       hero.style.setProperty('--pointer-glow-y', `${state.glowY}%`);
-    });
+    };
+
+    hero.addEventListener('pointermove', (event) => {
+      pendingHeroPointer = {
+        clientX: event.clientX,
+        clientY: event.clientY
+      };
+
+      if (!heroFrameId) {
+        heroFrameId = queueFrame(win, updateHeroPointer);
+      }
+    }, { passive: true });
 
     hero.addEventListener('pointerleave', () => {
+      pendingHeroPointer = null;
+
+      if (heroFrameId) {
+        cancelQueuedFrame(win, heroFrameId);
+        heroFrameId = 0;
+      }
+
       ['--pointer-rotate-x', '--pointer-rotate-y', '--pointer-shift-x', '--pointer-shift-y'].forEach((token) => {
         hero.style.setProperty(token, '0');
       });
@@ -165,11 +356,34 @@ export function initSite(doc = document, win = window) {
   }
 
   initBodyMap(doc, win, reducedMotion);
-  initTiltCards(doc, reducedMotion);
+  initTiltCards(doc, win, enablePointerEffects);
+}
+
+async function bootSite(doc = document, win = window) {
+  await Promise.all([
+    waitForSiteAssets(win),
+    waitForMinimumLoaderTime(win)
+  ]);
+  releaseLoadingScreen(doc);
+  initSite(doc, win);
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
-    initSite();
+    bootSite();
   });
 }
+
+globalThis.ColinSite = {
+  bootSite,
+  clamp,
+  getPreloadAssetUrls,
+  getRevealOptions,
+  initSite,
+  mapPointerToHeroState,
+  mapPointerToTiltState,
+  releaseLoadingScreen,
+  shouldEnablePointerEffects,
+  waitForMinimumLoaderTime,
+  waitForSiteAssets
+};

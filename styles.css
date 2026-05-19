@@ -18,6 +18,14 @@
   --pointer-shift-y: 0;
   --pointer-glow-x: 50%;
   --pointer-glow-y: 36%;
+  --art-constellation: image-set(url("assets/ambient-banner-constellation-cutout.webp") type("image/webp"), url("assets/ambient-banner-constellation-cutout.png") type("image/png"));
+  --art-emberflow: image-set(url("assets/ambient-banner-emberflow.webp") type("image/webp"), url("assets/ambient-banner-emberflow.png") type("image/png"));
+  --art-horizon: image-set(url("assets/ambient-horizon-glow.webp") type("image/webp"), url("assets/ambient-horizon-glow.png") type("image/png"));
+  --art-motifs: image-set(url("assets/ambient-soft-motifs.webp") type("image/webp"), url("assets/ambient-soft-motifs.png") type("image/png"));
+  --art-cascade: image-set(url("assets/ambient-vertical-cascade.webp") type("image/webp"), url("assets/ambient-vertical-cascade.png") type("image/png"));
+  --art-body-map: image-set(url("assets/body-map-energy-warrior-cutout.webp") type("image/webp"), url("assets/body-map-energy-warrior-cutout.png") type("image/png"));
+  --art-cards: image-set(url("assets/cards-theme-atlas-cutout.webp") type("image/webp"), url("assets/cards-theme-atlas-cutout.png") type("image/png"));
+  --art-hero: image-set(url("assets/hero-energy-warrior-cutout.webp") type("image/webp"), url("assets/hero-energy-warrior-cutout.png") type("image/png"));
 }
 
 /* Legacy asset hooks retained alongside the stronger new art:
@@ -44,6 +52,129 @@ body {
     radial-gradient(circle at 82% 8%, rgba(255, 200, 120, 0.14), transparent 24%),
     linear-gradient(180deg, #140707 0%, #180808 35%, #120708 100%);
   overflow-x: hidden;
+}
+
+body.is-loading {
+  overflow: hidden;
+}
+
+body.is-loading .hero,
+body.is-loading .site-main,
+body.is-loading .site-footer {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+body.is-loaded .hero,
+body.is-loaded .site-main,
+body.is-loaded .site-footer {
+  animation: siteEnter 520ms ease both;
+}
+
+.site-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.78rem;
+  padding: 2rem;
+  color: var(--text-main);
+  background:
+    radial-gradient(circle at 50% 62%, rgba(255, 104, 42, 0.24), transparent 18rem),
+    radial-gradient(circle at 50% 40%, rgba(255, 190, 92, 0.12), transparent 22rem),
+    linear-gradient(180deg, rgba(18, 7, 8, 0.98), rgba(28, 9, 9, 0.98));
+  text-align: center;
+  transition: opacity 420ms ease, visibility 420ms ease;
+}
+
+.site-loader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.26;
+  background-image:
+    radial-gradient(circle at 20% 24%, rgba(255, 190, 92, 0.4) 0 2px, transparent 3px),
+    radial-gradient(circle at 74% 36%, rgba(255, 104, 42, 0.36) 0 2px, transparent 3px),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 7px);
+  background-size: 220px 220px, 260px 260px, auto;
+  pointer-events: none;
+}
+
+.site-loader__signal {
+  position: relative;
+  width: 5.4rem;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 218, 171, 0.22);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 225, 165, 0.82) 0 0.46rem, transparent 0.5rem),
+    radial-gradient(circle, rgba(255, 106, 42, 0.24), transparent 64%);
+  box-shadow: 0 0 38px rgba(255, 106, 42, 0.28);
+  animation: loaderPulse 1.35s ease-in-out infinite;
+}
+
+.site-loader__signal::after {
+  content: "";
+  position: absolute;
+  inset: 0.6rem;
+  border: 1px solid rgba(255, 190, 92, 0.42);
+  border-radius: inherit;
+  border-top-color: rgba(255, 246, 234, 0.95);
+  animation: loaderSpin 1s linear infinite;
+}
+
+.site-loader__kicker {
+  position: relative;
+  margin: 0;
+  color: var(--accent-gold);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.site-loader strong {
+  position: relative;
+  font-family: "Orbitron", sans-serif;
+  font-size: clamp(3rem, 14vw, 6.5rem);
+  line-height: 0.94;
+  text-transform: uppercase;
+  text-shadow: 0 0 30px rgba(255, 106, 42, 0.34);
+}
+
+.site-loader__bar {
+  position: relative;
+  width: min(18rem, 70vw);
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 218, 171, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 218, 171, 0.12);
+}
+
+.site-loader__bar span {
+  display: block;
+  width: 46%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(255, 106, 42, 0.1), rgba(255, 190, 92, 0.95), rgba(255, 106, 42, 0.1));
+  animation: loaderBar 1.2s ease-in-out infinite;
+}
+
+.site-loader__copy {
+  position: relative;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 1rem;
+}
+
+body.is-loaded .site-loader {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 a,
@@ -93,7 +224,7 @@ button {
   opacity: 0.2;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.06), rgba(18, 7, 8, 0.2)),
-    url("assets/ambient-banner-constellation-cutout.png") 52% 4% / min(78rem, 88vw) auto no-repeat;
+    var(--art-constellation) 52% 4% / min(78rem, 88vw) auto no-repeat;
   mix-blend-mode: screen;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.94) 0%, rgba(0, 0, 0, 0.88) 36%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.94) 0%, rgba(0, 0, 0, 0.88) 36%, transparent 100%);
@@ -101,7 +232,7 @@ button {
 
 .hero__backdrop::after {
   opacity: 0.16;
-  background: url("assets/hero-energy-warrior-cutout.png") 94% 56% / min(42rem, 34vw) auto no-repeat;
+  background: var(--art-hero) 94% 56% / min(42rem, 34vw) auto no-repeat;
   mix-blend-mode: screen;
   filter: blur(48px) saturate(1.08);
 }
@@ -168,7 +299,7 @@ button {
   mix-blend-mode: screen;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.2)),
-    url("assets/ambient-horizon-glow.png") 24% 100% / cover no-repeat;
+    var(--art-horizon) 24% 100% / cover no-repeat;
   mask-image: radial-gradient(ellipse 84% 74% at 30% 72%, rgba(0, 0, 0, 0.98) 0 50%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 84% 74% at 30% 72%, rgba(0, 0, 0, 0.98) 0 50%, transparent 100%);
   filter: blur(10px);
@@ -271,7 +402,7 @@ button {
   opacity: 0.16;
   background:
     linear-gradient(90deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-horizon-glow.png") 26% 96% / 138% auto no-repeat;
+    var(--art-horizon) 26% 96% / 138% auto no-repeat;
   mix-blend-mode: screen;
   mask-image: radial-gradient(ellipse 84% 78% at 40% 70%, rgba(0, 0, 0, 0.98) 0 44%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 84% 78% at 40% 70%, rgba(0, 0, 0, 0.98) 0 44%, transparent 100%);
@@ -284,7 +415,7 @@ button {
   opacity: 0.12;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0), rgba(18, 7, 8, 0.12)),
-    url("assets/ambient-vertical-cascade.png") 60% 48% / contain no-repeat;
+    var(--art-cascade) 60% 48% / contain no-repeat;
   mix-blend-mode: screen;
   filter: blur(18px);
 }
@@ -303,7 +434,7 @@ button {
   inset: -4% -2% -8% 18%;
   isolation: isolate;
   z-index: 2;
-  background: url("assets/hero-energy-warrior-cutout.png") 82% 56% / contain no-repeat;
+  background: var(--art-hero) 82% 56% / contain no-repeat;
   opacity: 0.98;
   filter: saturate(1.08) contrast(1.02) brightness(1.04) drop-shadow(0 0 34px rgba(255, 138, 54, 0.2));
 }
@@ -312,7 +443,7 @@ button {
   content: "";
   position: absolute;
   inset: -8% -6% -12% 10%;
-  background: url("assets/hero-energy-warrior-cutout.png") 82% 56% / contain no-repeat;
+  background: var(--art-hero) 82% 56% / contain no-repeat;
   opacity: 0.34;
   filter: blur(38px) saturate(1.12) brightness(1.08);
   mix-blend-mode: screen;
@@ -324,8 +455,8 @@ button {
   inset: -6% -2% -10% 26%;
   background:
     radial-gradient(circle at 72% 56%, rgba(255, 174, 82, 0.18), transparent 22%),
-    url("assets/ambient-vertical-cascade.png") 76% 48% / 34% auto no-repeat,
-    url("assets/ambient-banner-constellation-cutout.png") 54% 62% / 120% auto no-repeat;
+    var(--art-cascade) 76% 48% / 34% auto no-repeat,
+    var(--art-constellation) 54% 62% / 120% auto no-repeat;
   opacity: 0.24;
   filter: blur(20px);
 }
@@ -347,7 +478,7 @@ button {
   z-index: 1;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.08), rgba(18, 7, 8, 0.3)),
-    url("assets/ambient-soft-motifs.png") center center / 240% auto no-repeat;
+    var(--art-motifs) center center / 240% auto no-repeat;
   opacity: 0.22;
   mix-blend-mode: screen;
   filter: saturate(0.82);
@@ -379,7 +510,7 @@ button {
   inset: -3.5rem 0 auto 0;
   height: 20rem;
   background:
-    url("assets/ambient-banner-constellation-cutout.png") 50% 0% / min(56rem, 74vw) auto no-repeat,
+    var(--art-constellation) 50% 0% / min(56rem, 74vw) auto no-repeat,
     radial-gradient(circle at 50% 10%, rgba(255, 170, 76, 0.16), transparent 30%),
     radial-gradient(circle at 20% 70%, rgba(255, 92, 32, 0.04), transparent 24%);
   mix-blend-mode: screen;
@@ -391,7 +522,7 @@ button {
 
 .section--cards::before {
   background:
-    url("assets/ambient-banner-constellation-cutout.png") 50% 0% / min(64rem, 82vw) auto no-repeat,
+    var(--art-constellation) 50% 0% / min(64rem, 82vw) auto no-repeat,
     radial-gradient(circle at 80% 20%, rgba(255, 170, 76, 0.08), transparent 20%),
     radial-gradient(circle at 20% 70%, rgba(255, 92, 32, 0.07), transparent 22%);
   mix-blend-mode: screen;
@@ -412,7 +543,7 @@ button {
   mix-blend-mode: screen;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-banner-emberflow.png") 56% 84% / cover no-repeat;
+    var(--art-emberflow) 56% 84% / cover no-repeat;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.94), transparent 92%);
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.94), transparent 92%);
 }
@@ -429,7 +560,7 @@ button {
   mix-blend-mode: screen;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-horizon-glow.png") 50% 10% / cover no-repeat;
+    var(--art-horizon) 50% 10% / cover no-repeat;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 10%, rgba(0, 0, 0, 0.98) 90%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 10%, rgba(0, 0, 0, 0.98) 90%, transparent 100%);
 }
@@ -449,7 +580,7 @@ button {
   mix-blend-mode: screen;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-soft-motifs.png") center center / cover no-repeat;
+    var(--art-motifs) center center / cover no-repeat;
   filter: drop-shadow(0 0 28px rgba(255, 140, 48, 0.24));
   mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.98) 0 52%, transparent 88%);
   -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.98) 0 52%, transparent 88%);
@@ -464,7 +595,7 @@ button {
   opacity: 0.34;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.06), rgba(18, 7, 8, 0.22)),
-    url("assets/ambient-horizon-glow.png") 6% 88% / 162% auto no-repeat;
+    var(--art-horizon) 6% 88% / 162% auto no-repeat;
 }
 
 .section-deco--hero-bottom {
@@ -477,7 +608,7 @@ button {
   background:
     radial-gradient(circle at 50% 88%, rgba(255, 173, 84, 0.14), transparent 48%),
     linear-gradient(180deg, rgba(18, 7, 8, 0), rgba(18, 7, 8, 0.12)),
-    url("assets/ambient-horizon-glow.png") 50% 100% / cover no-repeat;
+    var(--art-horizon) 50% 100% / cover no-repeat;
   mask-image: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.98) 0 54%, rgba(0, 0, 0, 0.84) 70%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(0, 0, 0, 0.98) 0 54%, rgba(0, 0, 0, 0.84) 70%, transparent 100%);
   filter: blur(12px);
@@ -492,7 +623,7 @@ button {
   opacity: 0.4;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.04), rgba(18, 7, 8, 0.24)),
-    url("assets/ambient-vertical-cascade.png") center center / contain no-repeat;
+    var(--art-cascade) center center / contain no-repeat;
   mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.98) 14%, rgba(0, 0, 0, 0.98) 88%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.98) 14%, rgba(0, 0, 0, 0.98) 88%, transparent 100%);
   filter: blur(10px);
@@ -507,7 +638,7 @@ button {
   opacity: 0.3;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.04), rgba(18, 7, 8, 0.28)),
-    url("assets/ambient-vertical-cascade.png") 64% 44% / contain no-repeat;
+    var(--art-cascade) 64% 44% / contain no-repeat;
   mask-image: radial-gradient(circle at 42% 50%, rgba(0, 0, 0, 0.98) 0 48%, transparent 88%);
   -webkit-mask-image: radial-gradient(circle at 42% 50%, rgba(0, 0, 0, 0.98) 0 48%, transparent 88%);
   animation-delay: -3.4s;
@@ -543,7 +674,7 @@ button {
   transform: translateX(-44%);
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-banner-constellation-cutout.png") center 0% / cover no-repeat;
+    var(--art-constellation) center 0% / cover no-repeat;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent 96%);
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent 96%);
 }
@@ -557,7 +688,7 @@ button {
   transform: translateX(-34%);
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-horizon-glow.png") 50% 100% / cover no-repeat;
+    var(--art-horizon) 50% 100% / cover no-repeat;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 96%);
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 96%);
 }
@@ -580,7 +711,7 @@ button {
   opacity: 0.3;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.22)),
-    url("assets/ambient-horizon-glow.png") center center / cover no-repeat;
+    var(--art-horizon) center center / cover no-repeat;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 12%, rgba(0, 0, 0, 0.98) 88%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 12%, rgba(0, 0, 0, 0.98) 88%, transparent 100%);
   animation-delay: -1.8s;
@@ -594,7 +725,7 @@ button {
   opacity: 0.32;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.04), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-banner-constellation-cutout.png") 50% 16% / cover no-repeat;
+    var(--art-constellation) 50% 16% / cover no-repeat;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 10%, rgba(0, 0, 0, 0.98) 90%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 10%, rgba(0, 0, 0, 0.98) 90%, transparent 100%);
   animation-delay: -3.1s;
@@ -630,7 +761,7 @@ button {
   opacity: 0.28;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.06), rgba(18, 7, 8, 0.24)),
-    url("assets/ambient-horizon-glow.png") 18% 78% / cover no-repeat;
+    var(--art-horizon) 18% 78% / cover no-repeat;
   mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.98), rgba(0, 0, 0, 0.9) 62%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.98), rgba(0, 0, 0, 0.9) 62%, transparent 100%);
   animation-delay: -5.4s;
@@ -644,7 +775,7 @@ button {
   opacity: 0.3;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.2)),
-    url("assets/ambient-banner-constellation-cutout.png") 50% 52% / cover no-repeat;
+    var(--art-constellation) 50% 52% / cover no-repeat;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 8%, rgba(0, 0, 0, 0.98) 92%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 8%, rgba(0, 0, 0, 0.98) 92%, transparent 100%);
   animation-delay: -1.4s;
@@ -662,7 +793,7 @@ button {
   height: 16rem;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.08), rgba(18, 7, 8, 0.3)),
-    url("assets/ambient-horizon-glow.png") 6% 80% / 170% auto no-repeat;
+    var(--art-horizon) 6% 80% / 170% auto no-repeat;
   opacity: 0.18;
   mask-image: radial-gradient(ellipse 82% 78% at 28% 72%, rgba(0, 0, 0, 0.96) 0 52%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 82% 78% at 28% 72%, rgba(0, 0, 0, 0.96) 0 52%, transparent 100%);
@@ -676,7 +807,7 @@ button {
   height: 12rem;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.08), rgba(18, 7, 8, 0.24)),
-    url("assets/ambient-banner-constellation-cutout.png") 48% 100% / 160% auto no-repeat;
+    var(--art-constellation) 48% 100% / 160% auto no-repeat;
   opacity: 0.14;
   mask-image: radial-gradient(ellipse 88% 100% at 50% 100%, rgba(0, 0, 0, 0.96) 0 52%, transparent 100%);
   -webkit-mask-image: radial-gradient(ellipse 88% 100% at 50% 100%, rgba(0, 0, 0, 0.96) 0 52%, transparent 100%);
@@ -734,7 +865,7 @@ button {
   opacity: 0.26;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.14)),
-    url("assets/ambient-banner-constellation-cutout.png") 50% 6% / cover no-repeat;
+    var(--art-constellation) 50% 6% / cover no-repeat;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.9) 64%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.98) 0%, rgba(0, 0, 0, 0.9) 64%, transparent 100%);
 }
@@ -747,7 +878,7 @@ button {
   opacity: 0.3;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.12)),
-    url("assets/ambient-horizon-glow.png") 50% 100% / cover no-repeat;
+    var(--art-horizon) 50% 100% / cover no-repeat;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 100%);
 }
@@ -764,7 +895,7 @@ button {
 .body-diagram__poster {
   position: absolute;
   inset: 1rem 0.6rem 0.8rem 0.6rem;
-  background: url("assets/body-map-energy-warrior-cutout.png") center 56% / contain no-repeat;
+  background: var(--art-body-map) center 56% / contain no-repeat;
   opacity: 0.96;
   filter: saturate(1.08) contrast(1.02) brightness(1.05) drop-shadow(0 0 28px rgba(255, 136, 54, 0.18));
 }
@@ -773,7 +904,7 @@ button {
   content: "";
   position: absolute;
   inset: -6% -8% -8% -8%;
-  background: url("assets/body-map-energy-warrior-cutout.png") center 56% / contain no-repeat;
+  background: var(--art-body-map) center 56% / contain no-repeat;
   opacity: 0.3;
   filter: blur(28px) saturate(1.14) brightness(1.08);
   mix-blend-mode: screen;
@@ -785,8 +916,8 @@ button {
   inset: -4% -6% -8% -6%;
   background:
     radial-gradient(circle at 50% 38%, rgba(255, 188, 98, 0.16), transparent 20%),
-    url("assets/ambient-vertical-cascade.png") 50% 42% / 44% auto no-repeat,
-    url("assets/ambient-horizon-glow.png") 50% 100% / 132% auto no-repeat;
+    var(--art-cascade) 50% 42% / 44% auto no-repeat,
+    var(--art-horizon) 50% 100% / 132% auto no-repeat;
   opacity: 0.28;
   filter: blur(20px);
   mix-blend-mode: screen;
@@ -798,8 +929,8 @@ button {
   background:
     radial-gradient(circle at 50% 38%, rgba(255, 188, 98, 0.22), transparent 18%),
     radial-gradient(circle at 50% 70%, rgba(255, 104, 42, 0.18), transparent 22%),
-    url("assets/ambient-banner-constellation-cutout.png") 50% 6% / 138% auto no-repeat,
-    url("assets/ambient-horizon-glow.png") 50% 100% / 142% auto no-repeat;
+    var(--art-constellation) 50% 6% / 138% auto no-repeat,
+    var(--art-horizon) 50% 100% / 142% auto no-repeat;
   opacity: 0.34;
   mix-blend-mode: screen;
   pointer-events: none;
@@ -817,7 +948,7 @@ button {
   mix-blend-mode: screen;
   background:
     linear-gradient(180deg, rgba(18, 7, 8, 0.02), rgba(18, 7, 8, 0.18)),
-    url("assets/ambient-horizon-glow.png") 50% 52% / cover no-repeat;
+    var(--art-horizon) 50% 52% / cover no-repeat;
   mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 8%, rgba(0, 0, 0, 0.98) 92%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.98) 8%, rgba(0, 0, 0, 0.98) 92%, transparent 100%);
 }
@@ -949,7 +1080,7 @@ button {
   position: absolute;
   inset: 0 0 0 auto;
   width: clamp(9.6rem, 30%, 13rem);
-  background: url("assets/cards-theme-atlas-cutout.png") center center / 300% 200% no-repeat;
+  background: var(--art-cards) center center / 300% 200% no-repeat;
   opacity: 0.96;
   filter: saturate(1.14) brightness(1.08) drop-shadow(0 0 18px rgba(255, 136, 54, 0.16));
   transform-origin: center center;
@@ -1006,7 +1137,7 @@ button {
 .body-info--legs .body-info__art,
 .body-info--squad .body-info__art {
   inset: 0 auto 0 0;
-  background: url("assets/cards-theme-atlas-cutout.png") center center / 300% 200% no-repeat;
+  background: var(--art-cards) center center / 300% 200% no-repeat;
   mask-image: linear-gradient(270deg, transparent 0%, rgba(0, 0, 0, 0.4) 18%, #000 52%);
   -webkit-mask-image: linear-gradient(270deg, transparent 0%, rgba(0, 0, 0, 0.4) 18%, #000 52%);
 }
@@ -1067,7 +1198,7 @@ button {
   position: absolute;
   inset: 0 0 0 auto;
   width: clamp(9rem, 34%, 12rem);
-  background: url("assets/cards-theme-atlas-cutout.png") center center / 300% 200% no-repeat;
+  background: var(--art-cards) center center / 300% 200% no-repeat;
   opacity: 0.92;
   filter: saturate(1.14) brightness(1.08) drop-shadow(0 0 16px rgba(255, 136, 54, 0.16));
   transform-origin: center center;
@@ -1257,6 +1388,47 @@ button {
   }
 }
 
+@keyframes loaderPulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes loaderSpin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes loaderBar {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@keyframes siteEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 1024px) {
   .hero {
     grid-template-columns: minmax(0, 460px) minmax(260px, 1fr);
@@ -1413,6 +1585,49 @@ button {
 
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px), (pointer: coarse) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .hero__backdrop::after,
+  .hero__copy::after,
+  .hero__poster::before,
+  .hero__poster::after,
+  .hero__ambient,
+  .section-deco,
+  .body-diagram__poster::before,
+  .body-diagram__poster::after,
+  .body-diagram__blend {
+    display: none;
+  }
+
+  .hero__ember-field {
+    animation: none;
+    opacity: 0.38;
+  }
+
+  .hero__flare {
+    filter: blur(18px);
+  }
+
+  .hero__body-stage,
+  .profile-card,
+  .profile-card:hover,
+  .profile-card.is-tilting {
+    transform: none;
+  }
+
+  .body-diagram__hotspot {
+    backdrop-filter: none;
+  }
+
+  .body-info,
+  .profile-card {
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
   }
 }
 
