@@ -1,6 +1,6 @@
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-const mapPointerToHeroState = ({ x, y }) => {
+export const mapPointerToHeroState = ({ x, y }) => {
   const safeX = clamp(x, -1, 1);
   const safeY = clamp(y, -1, 1);
 
@@ -14,7 +14,7 @@ const mapPointerToHeroState = ({ x, y }) => {
   };
 };
 
-const mapPointerToTiltState = ({ x, y }) => {
+export const mapPointerToTiltState = ({ x, y }) => {
   const safeX = clamp(x, -1, 1);
   const safeY = clamp(y, -1, 1);
 
@@ -26,37 +26,14 @@ const mapPointerToTiltState = ({ x, y }) => {
   };
 };
 
-const getRevealOptions = (reducedMotion) => ({
+export const getRevealOptions = (reducedMotion) => ({
   threshold: reducedMotion ? 0 : 0.18,
   rootMargin: reducedMotion ? '0px 0px -6% 0px' : '0px 0px -12% 0px'
 });
 
-const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer && hasHover;
+export const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer && hasHover;
 
-const getPreloadAssetUrls = () => [
-  'assets/hero-energy-warrior-cutout.webp',
-  'assets/body-map-energy-warrior-cutout.webp',
-  'assets/cards-theme-atlas-cutout.webp',
-  'assets/ambient-banner-constellation-cutout.webp',
-  'assets/ambient-horizon-glow.webp',
-  'assets/ambient-soft-motifs.webp',
-  'assets/ambient-banner-emberflow.webp',
-  'assets/ambient-vertical-cascade.webp'
-];
-
-const minimumLoaderMs = 1500;
-const assetReadyRatio = 2 / 3;
-const assetWaitTimeoutMs = 2400;
 const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;
-const scheduleTimeout = (win, callback, delay) => (win.setTimeout || setTimeout)(callback, delay);
-const cancelTimeout = (win, id) => {
-  if (win.clearTimeout) {
-    win.clearTimeout(id);
-    return;
-  }
-
-  clearTimeout(id);
-};
 const queueFrame = (win, callback) => {
   if (win.requestAnimationFrame) {
     return win.requestAnimationFrame(callback);
@@ -76,95 +53,6 @@ const cancelQueuedFrame = (win, id) => {
 
 const setVisible = (elements) => {
   elements.forEach((element) => element.classList.add('is-visible'));
-};
-
-const preloadImage = (win, url) => new Promise((resolve) => {
-  const image = new win.Image();
-
-  image.onload = () => resolve({ ok: true, url });
-  image.onerror = () => resolve({ ok: false, url });
-  image.decoding = 'async';
-  image.src = url;
-});
-
-function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(), options = {}) {
-  const total = urls.length;
-  const timeoutMs = options.timeoutMs ?? assetWaitTimeoutMs;
-  const readyTarget = total ? Math.max(1, Math.ceil(total * (options.minimumReadyRatio ?? assetReadyRatio))) : 0;
-
-  if (!total) {
-    return Promise.resolve({
-      failed: 0,
-      loaded: 0,
-      ready: true,
-      timedOut: false,
-      total
-    });
-  }
-
-  return new Promise((resolve) => {
-    let settled = 0;
-    let loaded = 0;
-    let failed = 0;
-    let complete = false;
-    const timerId = timeoutMs > 0
-      ? scheduleTimeout(win, () => finish(true), timeoutMs)
-      : 0;
-
-    const finish = (timedOut) => {
-      if (complete) {
-        return;
-      }
-
-      complete = true;
-
-      if (timerId) {
-        cancelTimeout(win, timerId);
-      }
-
-      resolve({
-        failed,
-        loaded,
-        ready: loaded >= readyTarget,
-        timedOut,
-        total
-      });
-    };
-
-    urls.forEach((url) => {
-      preloadImage(win, url).then((result) => {
-        if (complete) {
-          return;
-        }
-
-        settled += 1;
-
-        if (result.ok) {
-          loaded += 1;
-        } else {
-          failed += 1;
-        }
-
-        if (loaded >= readyTarget || settled === total) {
-          finish(false);
-        }
-      });
-    });
-  });
-}
-
-const waitForMinimumLoaderTime = (win = window, duration = minimumLoaderMs) => new Promise((resolve) => {
-  win.setTimeout(resolve, duration);
-});
-
-const releaseLoadingScreen = (doc = document) => {
-  const app = doc.querySelector('[data-site-app]');
-  const loader = doc.querySelector('[data-site-loader]');
-
-  doc.body.classList.remove('is-loading');
-  doc.body.classList.add('is-loaded');
-  app?.removeAttribute('inert');
-  loader?.setAttribute('aria-hidden', 'true');
 };
 
 const syncActiveBodyPanel = (doc, id) => {
@@ -268,7 +156,7 @@ const initTiltCards = (doc, win, enablePointerEffects) => {
   });
 };
 
-function initSite(doc = document, win = window) {
+export function initSite(doc = document, win = window) {
   const reducedMotion = matchesMedia(win, '(prefers-reduced-motion: reduce)');
   const enablePointerEffects = !reducedMotion && shouldEnablePointerEffects(
     matchesMedia(win, '(pointer: fine)'),
@@ -359,31 +247,8 @@ function initSite(doc = document, win = window) {
   initTiltCards(doc, win, enablePointerEffects);
 }
 
-async function bootSite(doc = document, win = window) {
-  await Promise.all([
-    waitForSiteAssets(win),
-    waitForMinimumLoaderTime(win)
-  ]);
-  releaseLoadingScreen(doc);
-  initSite(doc, win);
-}
-
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
-    bootSite();
+    initSite();
   });
 }
-
-globalThis.ColinSite = {
-  bootSite,
-  clamp,
-  getPreloadAssetUrls,
-  getRevealOptions,
-  initSite,
-  mapPointerToHeroState,
-  mapPointerToTiltState,
-  releaseLoadingScreen,
-  shouldEnablePointerEffects,
-  waitForMinimumLoaderTime,
-  waitForSiteAssets
-};
