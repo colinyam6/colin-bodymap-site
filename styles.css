@@ -69,7 +69,7 @@ body.is-loading .site-footer {
 body.is-loaded .hero,
 body.is-loaded .site-main,
 body.is-loaded .site-footer {
-  animation: siteEnter 520ms ease both;
+  animation: siteEnter 280ms ease both;
 }
 
 .site-loader {
@@ -87,7 +87,7 @@ body.is-loaded .site-footer {
     radial-gradient(circle at 50% 40%, rgba(255, 190, 92, 0.12), transparent 22rem),
     linear-gradient(180deg, rgba(18, 7, 8, 0.98), rgba(28, 9, 9, 0.98));
   text-align: center;
-  transition: opacity 420ms ease, visibility 420ms ease;
+  transition: opacity 240ms ease, visibility 240ms ease;
 }
 
 .site-loader::before {

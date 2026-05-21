@@ -33,27 +33,60 @@ const getRevealOptions = (reducedMotion) => ({
 
 const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer && hasHover;
 
-const getPreloadAssetUrls = () => [
-  'assets/hero-energy-warrior-cutout.webp',
-  'assets/hero-energy-warrior-cutout.png',
-  'assets/body-map-energy-warrior-cutout.webp',
-  'assets/body-map-energy-warrior-cutout.png',
-  'assets/cards-theme-atlas-cutout.webp',
-  'assets/cards-theme-atlas-cutout.png',
-  'assets/ambient-banner-constellation-cutout.webp',
-  'assets/ambient-banner-constellation-cutout.png',
-  'assets/ambient-horizon-glow.webp',
-  'assets/ambient-horizon-glow.png',
-  'assets/ambient-soft-motifs.webp',
-  'assets/ambient-soft-motifs.png',
-  'assets/ambient-banner-emberflow.webp',
-  'assets/ambient-banner-emberflow.png',
-  'assets/ambient-vertical-cascade.webp',
-  'assets/ambient-vertical-cascade.png'
+const preloadImageAssets = [
+  {
+    webp: 'assets/hero-energy-warrior-cutout.webp',
+    fallback: 'assets/hero-energy-warrior-cutout.png'
+  },
+  {
+    webp: 'assets/body-map-energy-warrior-cutout.webp',
+    fallback: 'assets/body-map-energy-warrior-cutout.png'
+  },
+  {
+    webp: 'assets/cards-theme-atlas-cutout.webp',
+    fallback: 'assets/cards-theme-atlas-cutout.png'
+  },
+  {
+    webp: 'assets/ambient-banner-constellation-cutout.webp',
+    fallback: 'assets/ambient-banner-constellation-cutout.png'
+  },
+  {
+    webp: 'assets/ambient-horizon-glow.webp',
+    fallback: 'assets/ambient-horizon-glow.png'
+  },
+  {
+    webp: 'assets/ambient-soft-motifs.webp',
+    fallback: 'assets/ambient-soft-motifs.png'
+  },
+  {
+    webp: 'assets/ambient-banner-emberflow.webp',
+    fallback: 'assets/ambient-banner-emberflow.png'
+  },
+  {
+    webp: 'assets/ambient-vertical-cascade.webp',
+    fallback: 'assets/ambient-vertical-cascade.png'
+  }
 ];
 
+const assetPreloadConcurrency = 4;
 const minimumLoaderMs = 1500;
 const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;
+const supportsWebpImages = (win) => {
+  const canvas = win.document?.createElement?.('canvas');
+
+  try {
+    return canvas?.toDataURL?.('image/webp')?.startsWith('data:image/webp') ?? true;
+  } catch (_error) {
+    return true;
+  }
+};
+
+const getPreloadAssetUrls = (win = window) => {
+  const selectedFormat = supportsWebpImages(win) ? 'webp' : 'fallback';
+
+  return preloadImageAssets.map((asset) => asset[selectedFormat]);
+};
+
 const queueFrame = (win, callback) => {
   if (win.requestAnimationFrame) {
     return win.requestAnimationFrame(callback);
@@ -78,13 +111,19 @@ const setVisible = (elements) => {
 const preloadImage = (win, url) => new Promise((resolve) => {
   const image = new win.Image();
 
-  image.onload = () => resolve({ ok: true, url });
+  image.onload = () => {
+    const decoded = typeof image.decode === 'function'
+      ? image.decode().catch(() => undefined)
+      : Promise.resolve();
+
+    decoded.then(() => resolve({ ok: true, url }));
+  };
   image.onerror = () => resolve({ ok: false, url });
   image.decoding = 'async';
   image.src = url;
 });
 
-function waitForSiteAssets(win = window, urls = getPreloadAssetUrls()) {
+function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(win), options = {}) {
   const total = urls.length;
 
   if (!total) {
@@ -97,17 +136,45 @@ function waitForSiteAssets(win = window, urls = getPreloadAssetUrls()) {
     });
   }
 
-  return Promise.all(urls.map((url) => preloadImage(win, url))).then((results) => {
-    const loaded = results.filter((result) => result.ok).length;
-    const failed = total - loaded;
+  const concurrency = Math.max(1, Math.min(
+    total,
+    Number.isFinite(options.concurrency) ? options.concurrency : assetPreloadConcurrency
+  ));
+  const results = [];
+  let nextIndex = 0;
+  let active = 0;
 
-    return {
-      failed,
-      loaded,
-      ready: loaded === total,
-      timedOut: false,
-      total
+  return new Promise((resolve) => {
+    const startNext = () => {
+      if (nextIndex >= total && active === 0) {
+        const loaded = results.filter((result) => result.ok).length;
+        const failed = total - loaded;
+
+        resolve({
+          failed,
+          loaded,
+          ready: loaded === total,
+          timedOut: false,
+          total
+        });
+        return;
+      }
+
+      while (active < concurrency && nextIndex < total) {
+        const currentIndex = nextIndex;
+        const url = urls[currentIndex];
+
+        nextIndex += 1;
+        active += 1;
+        preloadImage(win, url).then((result) => {
+          results[currentIndex] = result;
+          active -= 1;
+          startNext();
+        });
+      }
     };
+
+    startNext();
   });
 }
 
@@ -322,8 +389,8 @@ async function bootSite(doc = document, win = window) {
     waitForSiteAssets(win),
     waitForMinimumLoaderTime(win)
   ]);
-  releaseLoadingScreen(doc);
   initSite(doc, win);
+  releaseLoadingScreen(doc);
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
