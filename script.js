@@ -35,28 +35,25 @@ const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer 
 
 const getPreloadAssetUrls = () => [
   'assets/hero-energy-warrior-cutout.webp',
+  'assets/hero-energy-warrior-cutout.png',
   'assets/body-map-energy-warrior-cutout.webp',
+  'assets/body-map-energy-warrior-cutout.png',
   'assets/cards-theme-atlas-cutout.webp',
+  'assets/cards-theme-atlas-cutout.png',
   'assets/ambient-banner-constellation-cutout.webp',
+  'assets/ambient-banner-constellation-cutout.png',
   'assets/ambient-horizon-glow.webp',
+  'assets/ambient-horizon-glow.png',
   'assets/ambient-soft-motifs.webp',
+  'assets/ambient-soft-motifs.png',
   'assets/ambient-banner-emberflow.webp',
-  'assets/ambient-vertical-cascade.webp'
+  'assets/ambient-banner-emberflow.png',
+  'assets/ambient-vertical-cascade.webp',
+  'assets/ambient-vertical-cascade.png'
 ];
 
 const minimumLoaderMs = 1500;
-const assetReadyRatio = 2 / 3;
-const assetWaitTimeoutMs = 2400;
 const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;
-const scheduleTimeout = (win, callback, delay) => (win.setTimeout || setTimeout)(callback, delay);
-const cancelTimeout = (win, id) => {
-  if (win.clearTimeout) {
-    win.clearTimeout(id);
-    return;
-  }
-
-  clearTimeout(id);
-};
 const queueFrame = (win, callback) => {
   if (win.requestAnimationFrame) {
     return win.requestAnimationFrame(callback);
@@ -87,10 +84,8 @@ const preloadImage = (win, url) => new Promise((resolve) => {
   image.src = url;
 });
 
-function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(), options = {}) {
+function waitForSiteAssets(win = window, urls = getPreloadAssetUrls()) {
   const total = urls.length;
-  const timeoutMs = options.timeoutMs ?? assetWaitTimeoutMs;
-  const readyTarget = total ? Math.max(1, Math.ceil(total * (options.minimumReadyRatio ?? assetReadyRatio))) : 0;
 
   if (!total) {
     return Promise.resolve({
@@ -102,54 +97,17 @@ function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(), options =
     });
   }
 
-  return new Promise((resolve) => {
-    let settled = 0;
-    let loaded = 0;
-    let failed = 0;
-    let complete = false;
-    const timerId = timeoutMs > 0
-      ? scheduleTimeout(win, () => finish(true), timeoutMs)
-      : 0;
+  return Promise.all(urls.map((url) => preloadImage(win, url))).then((results) => {
+    const loaded = results.filter((result) => result.ok).length;
+    const failed = total - loaded;
 
-    const finish = (timedOut) => {
-      if (complete) {
-        return;
-      }
-
-      complete = true;
-
-      if (timerId) {
-        cancelTimeout(win, timerId);
-      }
-
-      resolve({
-        failed,
-        loaded,
-        ready: loaded >= readyTarget,
-        timedOut,
-        total
-      });
+    return {
+      failed,
+      loaded,
+      ready: loaded === total,
+      timedOut: false,
+      total
     };
-
-    urls.forEach((url) => {
-      preloadImage(win, url).then((result) => {
-        if (complete) {
-          return;
-        }
-
-        settled += 1;
-
-        if (result.ok) {
-          loaded += 1;
-        } else {
-          failed += 1;
-        }
-
-        if (loaded >= readyTarget || settled === total) {
-          finish(false);
-        }
-      });
-    });
   });
 }
 

@@ -17,7 +17,8 @@ test('index starts behind a loading screen and marks the app inert', () => {
   assert.match(html, /<body[^>]+class="[^"]*is-loading[^"]*"/);
   assert.match(html, /<div class="site-loader"[^>]+data-site-loader/);
   assert.match(html, /<main class="site-main"[^>]+data-site-app[^>]+inert/);
-  assert.match(html, /<script[^>]+data-loader-fallback/);
+  assert.doesNotMatch(html, /<script[^>]+data-loader-fallback/);
+  assert.doesNotMatch(html, /setTimeout\(release,\s*3200\)/);
   assert.match(html, /<noscript>/);
 });
 
@@ -36,18 +37,14 @@ test('styles define loading screen states and reveal the app after assets load',
 });
 
 test('preload list covers the visual assets used by CSS image variables', () => {
+  const css = read('styles.css');
   const urls = getPreloadAssetUrls();
 
-  [
-    'assets/hero-energy-warrior-cutout.webp',
-    'assets/body-map-energy-warrior-cutout.webp',
-    'assets/cards-theme-atlas-cutout.webp',
-    'assets/ambient-banner-constellation-cutout.webp',
-    'assets/ambient-horizon-glow.webp',
-    'assets/ambient-soft-motifs.webp',
-    'assets/ambient-banner-emberflow.webp',
-    'assets/ambient-vertical-cascade.webp'
-  ].forEach((asset) => {
+  const cssAssets = [
+    ...css.matchAll(/url\(["']?(assets\/[^"')]+)["']?\)/g)
+  ].map((match) => match[1]);
+
+  [...new Set(cssAssets)].forEach((asset) => {
     assert.ok(urls.includes(asset), `${asset} should be preloaded`);
   });
 });
@@ -75,60 +72,65 @@ test('waitForSiteAssets tracks successful image preloads', async () => {
   assert.deepEqual(loaded, ['a.webp', 'b.webp']);
 });
 
-test('waitForSiteAssets resolves after roughly two thirds of image assets are ready', async () => {
+test('waitForSiteAssets waits for every image asset before resolving', async () => {
   const loaded = [];
-  const never = new Promise(() => {});
+  const images = [];
   const win = {
     Image: class {
+      constructor() {
+        images.push(this);
+      }
+
       set src(value) {
         loaded.push(value);
         if (value !== 'stuck.webp') {
           queueMicrotask(() => this.onload?.());
         }
       }
-    },
-    document: {
-      fonts: {
-        ready: never
-      }
-    },
-    setTimeout
+    }
   };
 
-  const result = await Promise.race([
-    waitForSiteAssets(win, ['a.webp', 'b.webp', 'stuck.webp']),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('waitForSiteAssets timed out')), 50))
-  ]);
+  let settled = false;
+  const assetsReady = waitForSiteAssets(win, ['a.webp', 'b.webp', 'stuck.webp']).then((result) => {
+    settled = true;
+    return result;
+  });
 
-  assert.equal(result.loaded, 2);
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.equal(settled, false);
+
+  images[2].onload();
+  const result = await assetsReady;
+
+  assert.equal(result.loaded, 3);
   assert.equal(result.total, 3);
   assert.equal(result.ready, true);
   assert.deepEqual(loaded, ['a.webp', 'b.webp', 'stuck.webp']);
 });
 
-test('waitForSiteAssets stops waiting when image events take too long', async () => {
-  const never = new Promise(() => {});
+test('waitForSiteAssets waits for all image load or error events', async () => {
   const win = {
     Image: class {
-      set src(_value) {}
-    },
-    document: {
-      fonts: {
-        ready: never
+      set src(value) {
+        if (value === 'broken.webp') {
+          queueMicrotask(() => this.onerror?.());
+        } else {
+          queueMicrotask(() => this.onload?.());
+        }
       }
     },
     setTimeout
   };
 
-  const result = await Promise.race([
-    waitForSiteAssets(win, ['slow-a.webp', 'slow-b.webp'], { timeoutMs: 1 }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('waitForSiteAssets timed out')), 50))
-  ]);
+  const result = await waitForSiteAssets(win, ['loaded.webp', 'broken.webp']);
 
-  assert.equal(result.loaded, 0);
+  assert.equal(result.loaded, 1);
+  assert.equal(result.failed, 1);
   assert.equal(result.total, 2);
   assert.equal(result.ready, false);
-  assert.equal(result.timedOut, true);
+  assert.equal(result.timedOut, false);
 });
 
 test('bootSite releases the loading screen after assets are ready', async () => {
