@@ -266,22 +266,6 @@
       <p>Hot-blooded profile online. Colin is still leveling up.</p>
     </footer>
 
-    <script data-loader-fallback>
-      (() => {
-        const release = () => {
-          if (!document.body.classList.contains('is-loading')) {
-            return;
-          }
-
-          document.body.classList.remove('is-loading');
-          document.body.classList.add('is-loaded');
-          document.querySelector('[data-site-app]')?.removeAttribute('inert');
-          document.querySelector('[data-site-loader]')?.setAttribute('aria-hidden', 'true');
-        };
-
-        window.setTimeout(release, 3200);
-      })();
-    </script>
     <script src="script.js"></script>
   </body>
 </html>
