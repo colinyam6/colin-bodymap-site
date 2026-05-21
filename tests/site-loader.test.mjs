@@ -10,6 +10,23 @@ const {
 } = loadScriptApi();
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+const makeFormatWindow = (supportsWebp) => ({
+  document: {
+    createElement(tag) {
+      if (tag !== 'canvas') {
+        return null;
+      }
+
+      return {
+        toDataURL(type) {
+          return supportsWebp && type === 'image/webp'
+            ? 'data:image/webp;base64,test'
+            : 'data:image/png;base64,test';
+        }
+      };
+    }
+  }
+});
 
 test('index starts behind a loading screen and marks the app inert', () => {
   const html = read('index.html');
@@ -36,9 +53,19 @@ test('styles define loading screen states and reveal the app after assets load',
   });
 });
 
+test('loading exit animations stay short to reduce perceived stalls', () => {
+  const css = read('styles.css');
+
+  assert.match(css, /animation:\s*siteEnter 280ms ease both/);
+  assert.match(css, /transition:\s*opacity 240ms ease,\s*visibility 240ms ease/);
+});
+
 test('preload list covers the visual assets used by CSS image variables', () => {
   const css = read('styles.css');
-  const urls = getPreloadAssetUrls();
+  const urls = [
+    ...getPreloadAssetUrls(makeFormatWindow(true)),
+    ...getPreloadAssetUrls(makeFormatWindow(false))
+  ];
 
   const cssAssets = [
     ...css.matchAll(/url\(["']?(assets\/[^"')]+)["']?\)/g)
@@ -47,6 +74,16 @@ test('preload list covers the visual assets used by CSS image variables', () => 
   [...new Set(cssAssets)].forEach((asset) => {
     assert.ok(urls.includes(asset), `${asset} should be preloaded`);
   });
+});
+
+test('preload list only waits for the browser-selected image format', () => {
+  const webpUrls = getPreloadAssetUrls(makeFormatWindow(true));
+  const fallbackUrls = getPreloadAssetUrls(makeFormatWindow(false));
+
+  assert.equal(webpUrls.length, 8);
+  assert.equal(fallbackUrls.length, 8);
+  assert.ok(webpUrls.every((url) => url.endsWith('.webp')));
+  assert.ok(fallbackUrls.every((url) => url.endsWith('.png')));
 });
 
 test('waitForSiteAssets tracks successful image preloads', async () => {
@@ -133,6 +170,88 @@ test('waitForSiteAssets waits for all image load or error events', async () => {
   assert.equal(result.timedOut, false);
 });
 
+test('waitForSiteAssets caps simultaneous image preloads', async () => {
+  const images = [];
+  let active = 0;
+  let peakActive = 0;
+  const win = {
+    Image: class {
+      set src(value) {
+        active += 1;
+        peakActive = Math.max(peakActive, active);
+        const image = this;
+
+        images.push({
+          finish() {
+            active -= 1;
+            image.onload?.();
+          },
+          value
+        });
+      }
+    }
+  };
+
+  const ready = waitForSiteAssets(win, ['a.webp', 'b.webp', 'c.webp', 'd.webp', 'e.webp'], { concurrency: 2 });
+
+  await Promise.resolve();
+  assert.equal(images.length, 2);
+  assert.equal(peakActive, 2);
+
+  images[0].finish();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(images.length, 3);
+  assert.equal(peakActive, 2);
+
+  images[1].finish();
+  images[2].finish();
+  await Promise.resolve();
+  await Promise.resolve();
+  images[3].finish();
+  images[4].finish();
+
+  const result = await ready;
+
+  assert.equal(result.loaded, 5);
+  assert.equal(result.ready, true);
+  assert.equal(peakActive, 2);
+});
+
+test('waitForSiteAssets waits for image decode before resolving loaded assets', async () => {
+  let resolveDecode;
+  const win = {
+    Image: class {
+      decode() {
+        return new Promise((resolve) => {
+          resolveDecode = resolve;
+        });
+      }
+
+      set src(_value) {
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+  };
+
+  let settled = false;
+  const ready = waitForSiteAssets(win, ['decoded.webp']).then((result) => {
+    settled = true;
+    return result;
+  });
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.equal(settled, false);
+
+  resolveDecode();
+  const result = await ready;
+
+  assert.equal(result.loaded, 1);
+  assert.equal(result.ready, true);
+});
+
 test('bootSite releases the loading screen after assets are ready', async () => {
   const classList = new Set(['is-loading']);
   const changed = [];
@@ -201,7 +320,7 @@ test('bootSite releases the loading screen after assets are ready', async () => 
 
   assert.equal(classList.has('is-loading'), false);
   assert.equal(classList.has('is-loaded'), true);
-  assert.ok(changed.indexOf('remove:is-loading') < changed.indexOf('html:add:js'));
+  assert.ok(changed.indexOf('html:add:js') < changed.indexOf('remove:is-loading'));
   assert.ok(changed.includes('app:inert'));
   assert.ok(changed.includes('loader:aria-hidden:true'));
 });
