@@ -10,23 +10,6 @@ const {
 } = loadScriptApi();
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
-const makeFormatWindow = (supportsWebp) => ({
-  document: {
-    createElement(tag) {
-      if (tag !== 'canvas') {
-        return null;
-      }
-
-      return {
-        toDataURL(type) {
-          return supportsWebp && type === 'image/webp'
-            ? 'data:image/webp;base64,test'
-            : 'data:image/png;base64,test';
-        }
-      };
-    }
-  }
-});
 
 test('index starts behind a loading screen and marks the app inert', () => {
   const html = read('index.html');
@@ -62,10 +45,7 @@ test('loading exit animations stay short to reduce perceived stalls', () => {
 
 test('preload list covers the visual assets used by CSS image variables', () => {
   const css = read('styles.css');
-  const urls = [
-    ...getPreloadAssetUrls(makeFormatWindow(true)),
-    ...getPreloadAssetUrls(makeFormatWindow(false))
-  ];
+  const urls = getPreloadAssetUrls();
 
   const cssAssets = [
     ...css.matchAll(/url\(["']?(assets\/[^"')]+)["']?\)/g)
@@ -76,14 +56,12 @@ test('preload list covers the visual assets used by CSS image variables', () => 
   });
 });
 
-test('preload list only waits for the browser-selected image format', () => {
-  const webpUrls = getPreloadAssetUrls(makeFormatWindow(true));
-  const fallbackUrls = getPreloadAssetUrls(makeFormatWindow(false));
+test('preload list waits for every declared image format', () => {
+  const urls = getPreloadAssetUrls();
 
-  assert.equal(webpUrls.length, 8);
-  assert.equal(fallbackUrls.length, 8);
-  assert.ok(webpUrls.every((url) => url.endsWith('.webp')));
-  assert.ok(fallbackUrls.every((url) => url.endsWith('.png')));
+  assert.equal(urls.length, 16);
+  assert.equal(urls.filter((url) => url.endsWith('.webp')).length, 8);
+  assert.equal(urls.filter((url) => url.endsWith('.png')).length, 8);
 });
 
 test('waitForSiteAssets tracks successful image preloads', async () => {
@@ -246,6 +224,41 @@ test('waitForSiteAssets waits for image decode before resolving loaded assets', 
   assert.equal(settled, false);
 
   resolveDecode();
+  const result = await ready;
+
+  assert.equal(result.loaded, 1);
+  assert.equal(result.ready, true);
+});
+
+test('waitForSiteAssets waits for document fonts before resolving', async () => {
+  let resolveFonts;
+  const win = {
+    Image: class {
+      set src(_value) {
+        queueMicrotask(() => this.onload?.());
+      }
+    },
+    document: {
+      fonts: {
+        ready: new Promise((resolve) => {
+          resolveFonts = resolve;
+        })
+      }
+    }
+  };
+
+  let settled = false;
+  const ready = waitForSiteAssets(win, ['hero.webp']).then((result) => {
+    settled = true;
+    return result;
+  });
+
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.equal(settled, false);
+
+  resolveFonts();
   const result = await ready;
 
   assert.equal(result.loaded, 1);
