@@ -1593,6 +1593,16 @@ button {
     scroll-behavior: auto;
   }
 
+  body.is-loaded .hero,
+  body.is-loaded .site-main,
+  body.is-loaded .site-footer,
+  .site-loader__signal,
+  .site-loader__signal::after,
+  .site-loader__bar span,
+  .hero__ember-field {
+    animation: none;
+  }
+
   .hero__backdrop::after,
   .hero__copy::after,
   .hero__poster::before,
@@ -1606,12 +1616,18 @@ button {
   }
 
   .hero__ember-field {
-    animation: none;
     opacity: 0.38;
   }
 
-  .hero__flare {
-    filter: blur(18px);
+  .hero__flare,
+  .hero__stage-glow,
+  .hero__poster,
+  .body-diagram__glow,
+  .body-diagram__poster,
+  .body-info__art,
+  .profile-card__art {
+    filter: none;
+    mix-blend-mode: normal;
   }
 
   .hero__body-stage,
@@ -1619,6 +1635,14 @@ button {
   .profile-card:hover,
   .profile-card.is-tilting {
     transform: none;
+  }
+
+  .reveal,
+  .reveal.is-visible,
+  .profile-card,
+  .profile-card__art,
+  .body-diagram__hotspot {
+    transition: none;
   }
 
   .body-diagram__hotspot {

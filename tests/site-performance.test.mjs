@@ -9,6 +9,31 @@ const {
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 
+const getRuleBlock = (css, selector, startIndex = 0) => {
+  const selectorIndex = css.indexOf(selector, startIndex);
+
+  assert.notEqual(selectorIndex, -1, `expected ${selector}`);
+
+  const openIndex = css.indexOf('{', selectorIndex);
+  let depth = 0;
+
+  for (let index = openIndex; index < css.length; index += 1) {
+    if (css[index] === '{') {
+      depth += 1;
+    } else if (css[index] === '}') {
+      depth -= 1;
+
+      if (depth === 0) {
+        return css.slice(selectorIndex, index + 1);
+      }
+    }
+  }
+
+  throw new Error(`could not parse ${selector}`);
+};
+
+const getMobilePerformanceBlock = (css) => getRuleBlock(css, '@media (max-width: 860px), (pointer: coarse)');
+
 test('pointer-driven effects run only on fine hover devices', () => {
   assert.equal(shouldEnablePointerEffects(false, true), false);
   assert.equal(shouldEnablePointerEffects(false, false), false);
@@ -18,9 +43,7 @@ test('pointer-driven effects run only on fine hover devices', () => {
 
 test('mobile and coarse-pointer layouts drop the heaviest decorative layers', () => {
   const css = read('styles.css');
-  const mobilePerformanceBlock = css.match(/@media\s*\(max-width:\s*860px\),\s*\(pointer:\s*coarse\)\s*\{[\s\S]+?\n\}/);
-
-  assert.ok(mobilePerformanceBlock, 'expected a mobile/coarse-pointer performance media query');
+  const mobilePerformanceBlock = getMobilePerformanceBlock(css);
 
   [
     '.hero__backdrop::after',
@@ -33,7 +56,39 @@ test('mobile and coarse-pointer layouts drop the heaviest decorative layers', ()
     '.body-diagram__poster::after',
     '.body-diagram__blend'
   ].forEach((selector) => {
-    assert.match(mobilePerformanceBlock[0], new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]+?display:\\s*none`));
+    assert.match(mobilePerformanceBlock, new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]+?display:\\s*none`));
+  });
+});
+
+test('mobile and coarse-pointer layouts avoid expensive paint effects', () => {
+  const css = read('styles.css');
+  const mobilePerformanceBlock = getMobilePerformanceBlock(css);
+
+  [
+    '.site-loader__signal',
+    '.site-loader__signal::after',
+    '.site-loader__bar span',
+    'body.is-loaded .hero,',
+    '.hero__ember-field',
+    '.hero__flare',
+    '.hero__stage-glow',
+    '.hero__poster',
+    '.body-diagram__glow',
+    '.body-diagram__poster',
+    '.body-info__art',
+    '.profile-card__art',
+    '.reveal'
+  ].forEach((selector) => {
+    assert.match(mobilePerformanceBlock, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  });
+
+  [
+    /animation:\s*none/,
+    /transition:\s*none/,
+    /filter:\s*none/,
+    /mix-blend-mode:\s*normal/
+  ].forEach((pattern) => {
+    assert.match(mobilePerformanceBlock, pattern);
   });
 });
 
