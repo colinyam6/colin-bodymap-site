@@ -1279,6 +1279,49 @@ button {
   padding-bottom: 4rem;
 }
 
+.section--games {
+  padding-block: clamp(3.5rem, 8vw, 5.5rem);
+}
+
+.game-port {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(1.25rem, 4vw, 3rem);
+  padding-block: 1.4rem;
+  border-block: 1px solid rgba(255, 190, 92, 0.2);
+}
+
+.game-port .section-intro {
+  max-width: 42rem;
+}
+
+.game-port__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.2rem;
+  padding: 0.85rem 1.35rem;
+  border: 1px solid rgba(255, 218, 171, 0.26);
+  border-radius: 999px;
+  color: var(--text-main);
+  background: linear-gradient(135deg, rgba(255, 106, 42, 0.3), rgba(255, 190, 92, 0.2));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.game-port__link:hover,
+.game-port__link:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(255, 214, 160, 0.42);
+  box-shadow: 0 0 0 1px rgba(255, 106, 42, 0.16), 0 0 28px rgba(255, 190, 92, 0.18);
+}
+
 .closing-copy {
   max-width: 38rem;
   margin-top: 1rem;
@@ -1585,6 +1628,16 @@ button {
 
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .game-port {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .game-port__link {
+    width: 100%;
+    white-space: normal;
   }
 }
 

@@ -1,0 +1,2799 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>森林救援</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #78c9e8;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #15313a;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="森林救援游戏"></canvas>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const JUMP_SOUND_SRC = 'assets/jump.wav';
+      const BACKGROUND_IMAGE_SOURCES = [
+        'assets/jungle-background.png',
+        'assets/jungle-background.svg'
+      ];
+      const RANGER_IDLE_SPRITE_SRC = 'assets/ranger-idle.png';
+      const RANGER_FLIGHT_FRAME_SOURCES = [
+        'assets/ranger-flight-1.png',
+        'assets/ranger-flight-2.png',
+        'assets/ranger-flight-3.png',
+        'assets/ranger-flight-4.png'
+      ];
+      const RANGER_FLIGHT_FRAME_DURATION = 0.13;
+      const RESCUE_CAGE_SPRITE_SRC = 'assets/rescue/cage-covered.png';
+      const RESCUE_BIRD_FLIGHT_FRAME_DURATION = 0.09;
+      const RESCUE_BIRD_FRAME_SOURCES = {
+        'red-cockaded-woodpecker': [
+          'assets/rescue-birds/red-cockaded-woodpecker-flight-1.png',
+          'assets/rescue-birds/red-cockaded-woodpecker-flight-2.png',
+          'assets/rescue-birds/red-cockaded-woodpecker-flight-3.png',
+          'assets/rescue-birds/red-cockaded-woodpecker-flight-4.png'
+        ],
+        'green-racquet-tail': [
+          'assets/rescue-birds/green-racquet-tail-flight-1.png',
+          'assets/rescue-birds/green-racquet-tail-flight-2.png',
+          'assets/rescue-birds/green-racquet-tail-flight-3.png',
+          'assets/rescue-birds/green-racquet-tail-flight-4.png'
+        ],
+        'bali-myna': [
+          'assets/rescue-birds/bali-myna-flight-1.png',
+          'assets/rescue-birds/bali-myna-flight-2.png',
+          'assets/rescue-birds/bali-myna-flight-3.png',
+          'assets/rescue-birds/bali-myna-flight-4.png'
+        ],
+        'great-green-macaw': [
+          'assets/rescue-birds/great-green-macaw-flight-1.png',
+          'assets/rescue-birds/great-green-macaw-flight-2.png',
+          'assets/rescue-birds/great-green-macaw-flight-3.png',
+          'assets/rescue-birds/great-green-macaw-flight-4.png'
+        ],
+        'philippine-eagle': [
+          'assets/rescue-birds/philippine-eagle-flight-1.png',
+          'assets/rescue-birds/philippine-eagle-flight-2.png',
+          'assets/rescue-birds/philippine-eagle-flight-3.png',
+          'assets/rescue-birds/philippine-eagle-flight-4.png'
+        ],
+        'helmeted-hornbill': [
+          'assets/rescue-birds/helmeted-hornbill-flight-1.png',
+          'assets/rescue-birds/helmeted-hornbill-flight-2.png',
+          'assets/rescue-birds/helmeted-hornbill-flight-3.png',
+          'assets/rescue-birds/helmeted-hornbill-flight-4.png'
+        ]
+      };
+
+      const world = {
+        width: 360,
+        height: 640,
+        groundY: 558
+      };
+
+      const settings = {
+        gravity: 1450,
+        flapPower: -430,
+        pipeSpeed: 142,
+        pipeInterval: 1.65,
+        pipeWidth: 62,
+        pipeCullPadding: 6,
+        pipeGap: 152,
+        rangerRadius: 15,
+        rescueRadius: 18,
+        rescueHorizontalOffset: 96,
+        crashPanelDelay: 0.55,
+        crashDriftSpeed: -180,
+        crashLiftSpeed: -180,
+        rangerSpriteWidth: 132,
+        rangerSpriteHeight: 74,
+        rangerObstacleHitbox: {
+          width: 48,
+          height: 62,
+          offsetX: -6,
+          offsetY: 3
+        }
+      };
+
+      const OBSTACLE_THEMES = [
+        {
+          name: 'ruin',
+          segmentHeight: 38,
+          capHeight: 34,
+          body: '#6f9147',
+          bodyLight: '#a2bd63',
+          bodyDark: '#3b5133',
+          side: '#4a633b',
+          trim: '#263629',
+          metal: '#8e9686',
+          accent: '#67efe1',
+          glow: 'rgba(103, 239, 225, 0.42)',
+          shadow: 'rgba(24, 45, 31, 0.24)'
+        },
+        {
+          name: 'toxic',
+          segmentHeight: 42,
+          capHeight: 36,
+          body: '#3f5c43',
+          bodyLight: '#667b61',
+          bodyDark: '#26352d',
+          side: '#2c4737',
+          trim: '#1e2d27',
+          metal: '#6f7871',
+          accent: '#7cff24',
+          glow: 'rgba(124, 255, 36, 0.54)',
+          shadow: 'rgba(13, 30, 20, 0.28)'
+        },
+        {
+          name: 'steel',
+          segmentHeight: 36,
+          capHeight: 32,
+          body: '#526454',
+          bodyLight: '#74806f',
+          bodyDark: '#2d3a31',
+          side: '#34473a',
+          trim: '#1f2b25',
+          metal: '#778077',
+          accent: '#e1c735',
+          glow: 'rgba(225, 199, 53, 0.22)',
+          shadow: 'rgba(14, 25, 20, 0.24)'
+        }
+      ];
+
+      const view = {
+        cssWidth: 0,
+        cssHeight: 0,
+        dpr: 1,
+        scale: 1,
+        offsetX: 0,
+        offsetY: 0
+      };
+
+      const backgroundImage = {
+        image: null,
+        ready: false,
+        failed: false,
+        source: ''
+      };
+      const rangerSpriteAssets = {
+        idle: createImageAsset(RANGER_IDLE_SPRITE_SRC),
+        flight: RANGER_FLIGHT_FRAME_SOURCES.map((source) => createImageAsset(source))
+      };
+      const rescueCageAsset = createImageAsset(RESCUE_CAGE_SPRITE_SRC);
+      const rescueBirdSpriteAssets = Object.keys(RESCUE_BIRD_FRAME_SOURCES).reduce((assets, speciesId) => {
+        assets[speciesId] = {
+          frames: RESCUE_BIRD_FRAME_SOURCES[speciesId].map((source) => createImageAsset(source))
+        };
+        return assets;
+      }, {});
+      const ACHIEVEMENT_STORAGE_KEY = 'fappy-bird-achievements';
+      const BEST_SCORE_STORAGE_KEY = 'fappy-bird-best';
+      const TOTAL_SCORE_STORAGE_KEY = 'fappy-bird-total-score';
+      const ACHIEVEMENT_DEFINITIONS = [
+        {
+          id: 'common-first-rescue',
+          rarity: 'common',
+          title: '第一次解救常见鸟类',
+          titleLines: ['第一次解救', '常见鸟类'],
+          iconSource: 'assets/achievement-medals/common-first-rescue.png'
+        },
+        {
+          id: 'uncommon-first-rescue',
+          rarity: 'uncommon',
+          title: '第一次解救少见鸟类',
+          titleLines: ['第一次解救', '少见鸟类'],
+          iconSource: 'assets/achievement-medals/uncommon-first-rescue.png'
+        },
+        {
+          id: 'rare-first-rescue',
+          rarity: 'rare',
+          title: '第一次解救稀有鸟类',
+          titleLines: ['第一次解救', '稀有鸟类'],
+          iconSource: 'assets/achievement-medals/rare-first-rescue.png'
+        },
+        {
+          id: 'epic-first-rescue',
+          rarity: 'epic',
+          title: '第一次解救史诗鸟类',
+          titleLines: ['第一次解救', '史诗鸟类'],
+          iconSource: 'assets/achievement-medals/epic-first-rescue.png'
+        },
+        {
+          id: 'legendary-first-rescue',
+          rarity: 'legendary',
+          title: '第一次解救传说鸟类',
+          titleLines: ['第一次解救', '传说鸟类'],
+          iconSource: 'assets/achievement-medals/legendary-first-rescue.png'
+        },
+        {
+          id: 'mythic-first-rescue',
+          rarity: 'mythic',
+          title: '第一次解救神话鸟类',
+          titleLines: ['第一次解救', '神话鸟类'],
+          iconSource: 'assets/achievement-medals/mythic-first-rescue.png'
+        },
+        {
+          id: 'first-death',
+          rarity: null,
+          styleKey: 'legendary',
+          title: '第一次死亡',
+          titleLines: ['第一次', '死亡'],
+          iconSource: 'assets/achievement-medals/first-death.png'
+        },
+        {
+          id: 'rescue-master',
+          rarity: null,
+          styleKey: 'uncommon',
+          title: '\u6551\u63f4\u8fbe\u4eba',
+          titleLines: ['\u6551\u63f4', '\u8fbe\u4eba'],
+          iconSource: 'assets/achievement-medals/rescue-master.png',
+          trigger: {
+            type: 'run_rescue_count',
+            threshold: 10
+          }
+        },
+        {
+          id: 'rescue-king',
+          rarity: null,
+          styleKey: 'legendary',
+          title: '\u6551\u63f4\u738b\u8005',
+          titleLines: ['\u6551\u63f4', '\u738b\u8005'],
+          iconSource: 'assets/achievement-medals/rescue-king.png',
+          trigger: {
+            type: 'run_rescue_count',
+            threshold: 50
+          }
+        },
+        {
+          id: 'obstacle-expert',
+          rarity: null,
+          styleKey: 'rare',
+          title: '\u907f\u969c\u80fd\u624b',
+          titleLines: ['\u907f\u969c', '\u80fd\u624b'],
+          iconSource: 'assets/achievement-medals/obstacle-expert.png',
+          trigger: {
+            type: 'run_score',
+            threshold: 10
+          }
+        },
+        {
+          id: 'know-it-all',
+          rarity: null,
+          styleKey: 'legendary',
+          title: '\u4e86\u5982\u6307\u638c',
+          titleLines: ['\u4e86\u5982', '\u6307\u638c'],
+          iconSource: 'assets/achievement-medals/know-it-all.png',
+          trigger: {
+            type: 'run_score',
+            threshold: 100
+          }
+        },
+        {
+          id: 'never-give-up',
+          rarity: null,
+          styleKey: 'legendary',
+          title: '\u6c38\u4e0d\u653e\u5f03',
+          titleLines: ['\u6c38\u4e0d', '\u653e\u5f03'],
+          iconSource: 'assets/achievement-medals/never-give-up.png',
+          trigger: {
+            type: 'lifetime_total_score',
+            threshold: 10000
+          }
+        }
+      ];
+      const achievementMedalAssets = ACHIEVEMENT_DEFINITIONS.reduce((assets, achievement) => {
+        assets[achievement.id] = createImageAsset(achievement.iconSource);
+        return assets;
+      }, {});
+
+      const state = {
+        mode: 'ready',
+        ranger: {
+          x: 96,
+          y: 288,
+          vy: 0,
+          rotation: 0
+        },
+        pipes: [],
+        rescueTarget: null,
+        rescueBirds: [],
+        backgroundStorySeed: 1,
+        pipeTimer: 0,
+        nextObstacleVariant: 0,
+        score: 0,
+        rescueCount: 0,
+        rescueRarityCounts: {
+          common: 0,
+          uncommon: 0,
+          rare: 0,
+          epic: 0,
+          legendary: 0,
+          mythic: 0
+        },
+        best: readBestScore(),
+        totalScore: readTotalScore(),
+        achievementUnlocks: readAchievementUnlocks(),
+        newAchievementsThisRun: 0,
+        audio: {
+          context: null,
+          enabled: false,
+          jumpSound: null
+        },
+        crashVx: 0,
+        crashTimer: 0,
+        groundShift: 0,
+        rangerAnimationTime: 0,
+        lastTime: 0
+      };
+
+      function readBestScore() {
+        try {
+          const storedValue = Number(localStorage.getItem(BEST_SCORE_STORAGE_KEY) || 0);
+          return Number.isFinite(storedValue) ? storedValue : 0;
+        } catch (error) {
+          return 0;
+        }
+      }
+
+      function writeBestScore(score) {
+        try {
+          localStorage.setItem(BEST_SCORE_STORAGE_KEY, String(score));
+        } catch (error) {
+          // Local files or private browser modes can block storage.
+        }
+      }
+
+      function readTotalScore() {
+        try {
+          const storedValue = Number(localStorage.getItem(TOTAL_SCORE_STORAGE_KEY) || 0);
+          return Number.isFinite(storedValue) ? storedValue : 0;
+        } catch (error) {
+          return 0;
+        }
+      }
+
+      function writeTotalScore(totalScore) {
+        try {
+          localStorage.setItem(TOTAL_SCORE_STORAGE_KEY, String(totalScore));
+        } catch (error) {
+          // Local files or private browser modes can block storage.
+        }
+      }
+
+      function createEmptyAchievementUnlocks() {
+        return ACHIEVEMENT_DEFINITIONS.reduce((unlocks, achievement) => {
+          unlocks[achievement.id] = false;
+          return unlocks;
+        }, {});
+      }
+
+      function normalizeAchievementUnlocks(value) {
+        const normalized = createEmptyAchievementUnlocks();
+        if (!value || typeof value !== 'object') {
+          return normalized;
+        }
+
+        for (const achievement of ACHIEVEMENT_DEFINITIONS) {
+          normalized[achievement.id] = Boolean(value[achievement.id]);
+        }
+        return normalized;
+      }
+
+      function readAchievementUnlocks() {
+        try {
+          const storedValue = localStorage.getItem(ACHIEVEMENT_STORAGE_KEY);
+          if (!storedValue) {
+            return createEmptyAchievementUnlocks();
+          }
+          return normalizeAchievementUnlocks(JSON.parse(storedValue));
+        } catch (error) {
+          return createEmptyAchievementUnlocks();
+        }
+      }
+
+      function writeAchievementUnlocks(unlocks) {
+        try {
+          localStorage.setItem(
+            ACHIEVEMENT_STORAGE_KEY,
+            JSON.stringify(normalizeAchievementUnlocks(unlocks))
+          );
+        } catch (error) {
+          // Local files or private browser modes can block storage.
+        }
+      }
+
+      function getUnlockedAchievementCount() {
+        return Object.values(state.achievementUnlocks || {}).filter(Boolean).length;
+      }
+
+      function getNewAchievementsThisRunCount() {
+        return Number(state.newAchievementsThisRun || 0);
+      }
+
+      function unlockAchievementById(id) {
+        const unlocks = normalizeAchievementUnlocks(state.achievementUnlocks);
+        if (!Object.prototype.hasOwnProperty.call(unlocks, id) || unlocks[id]) {
+          return false;
+        }
+
+        unlocks[id] = true;
+        state.achievementUnlocks = unlocks;
+        state.newAchievementsThisRun = getNewAchievementsThisRunCount() + 1;
+        writeAchievementUnlocks(unlocks);
+        return true;
+      }
+
+      function findAchievementByRarity(rarity) {
+        return ACHIEVEMENT_DEFINITIONS.find((achievement) => achievement.rarity === rarity) || null;
+      }
+
+      function unlockAchievementForRarity(rarity) {
+        const achievement = findAchievementByRarity(rarity);
+        if (!achievement) {
+          return;
+        }
+        unlockAchievementById(achievement.id);
+      }
+
+      function unlockThresholdAchievements(triggerType, value) {
+        for (const achievement of ACHIEVEMENT_DEFINITIONS) {
+          if (!achievement.trigger || achievement.trigger.type !== triggerType) {
+            continue;
+          }
+          if (value >= achievement.trigger.threshold) {
+            unlockAchievementById(achievement.id);
+          }
+        }
+      }
+
+      function ensureAudio() {
+        try {
+          let audioContext = state.audio.context;
+          if (!audioContext) {
+            const AudioCtor = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtor) return null;
+            audioContext = new AudioCtor();
+            state.audio.context = audioContext;
+            state.audio.enabled = true;
+          }
+
+          if (audioContext.state === 'suspended' && typeof audioContext.resume === 'function') {
+            try {
+              const resumeResult = audioContext.resume();
+              if (resumeResult && typeof resumeResult.catch === 'function') {
+                resumeResult.catch(() => {});
+              }
+            } catch (error) {
+              // Resume is best-effort and must not interrupt gameplay.
+            }
+          }
+
+          return audioContext;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function getJumpSound() {
+        if (state.audio.jumpSound || typeof Audio !== 'function') {
+          return state.audio.jumpSound;
+        }
+
+        const jumpSound = new Audio(JUMP_SOUND_SRC);
+        jumpSound.preload = 'auto';
+        state.audio.jumpSound = jumpSound;
+        return jumpSound;
+      }
+
+      function playJumpSound() {
+        try {
+          const jumpSound = getJumpSound();
+          if (!jumpSound) {
+            playSynthJumpSound();
+            return;
+          }
+
+          const jumpSoundClip = jumpSound.cloneNode();
+          const playResult = jumpSoundClip.play();
+          if (playResult && typeof playResult.catch === 'function') {
+            playResult.catch(() => playSynthJumpSound());
+          }
+        } catch (error) {
+          playSynthJumpSound();
+        }
+      }
+
+      function playSynthJumpSound() {
+        try {
+          const audioContext = ensureAudio();
+          if (!audioContext) return;
+          const now = audioContext.currentTime;
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(420, now);
+          oscillator.frequency.exponentialRampToValueAtTime(720, now + 0.08);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.08, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+          oscillator.onended = () => {
+            try {
+              oscillator.disconnect();
+            } catch (error) {
+              // Node cleanup should never affect gameplay.
+            }
+            try {
+              gain.disconnect();
+            } catch (error) {
+              // Node cleanup should never affect gameplay.
+            }
+          };
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.start(now);
+          oscillator.stop(now + 0.13);
+        } catch (error) {
+          return;
+        }
+      }
+
+      function createImageAsset(source) {
+        return {
+          source,
+          image: null,
+          ready: false,
+          failed: false
+        };
+      }
+
+      function preloadImageAsset(asset) {
+        if (!asset || asset.image || typeof Image !== 'function') {
+          return;
+        }
+
+        const image = new Image();
+        image.onload = () => {
+          asset.ready = true;
+          asset.failed = false;
+        };
+        image.onerror = () => {
+          asset.failed = true;
+        };
+        asset.image = image;
+        image.src = asset.source;
+      }
+
+      function preloadRangerSpriteAssets() {
+        if (typeof Image !== 'function') {
+          rangerSpriteAssets.idle.failed = true;
+          for (const asset of rangerSpriteAssets.flight) {
+            asset.failed = true;
+          }
+          return;
+        }
+
+        preloadImageAsset(rangerSpriteAssets.idle);
+        for (const asset of rangerSpriteAssets.flight) {
+          preloadImageAsset(asset);
+        }
+      }
+
+      function preloadRescueArtAssets() {
+        if (typeof Image !== 'function') {
+          rescueCageAsset.failed = true;
+          for (const entry of Object.values(rescueBirdSpriteAssets)) {
+            for (const asset of entry.frames) {
+              asset.failed = true;
+            }
+          }
+          return;
+        }
+
+        preloadImageAsset(rescueCageAsset);
+        for (const entry of Object.values(rescueBirdSpriteAssets)) {
+          for (const asset of entry.frames) {
+            preloadImageAsset(asset);
+          }
+        }
+      }
+
+      function preloadAchievementMedals() {
+        if (typeof Image !== 'function') {
+          for (const asset of Object.values(achievementMedalAssets)) {
+            asset.failed = true;
+          }
+          return;
+        }
+
+        for (const asset of Object.values(achievementMedalAssets)) {
+          preloadImageAsset(asset);
+        }
+      }
+
+      function preloadBackgroundImage() {
+        if (typeof Image !== 'function') {
+          backgroundImage.failed = true;
+          return;
+        }
+
+        loadNextBackgroundImage(0);
+      }
+
+      function loadNextBackgroundImage(sourceIndex) {
+        if (sourceIndex >= BACKGROUND_IMAGE_SOURCES.length) {
+          backgroundImage.failed = true;
+          return;
+        }
+
+        const image = new Image();
+        image.onload = () => {
+          backgroundImage.ready = true;
+          backgroundImage.failed = false;
+          backgroundImage.source = BACKGROUND_IMAGE_SOURCES[sourceIndex];
+        };
+        image.onerror = () => {
+          loadNextBackgroundImage(sourceIndex + 1);
+        };
+        backgroundImage.image = image;
+        image.src = BACKGROUND_IMAGE_SOURCES[sourceIndex];
+      }
+
+      // RULES_START
+      const BIRD_SPECIES = [
+        {
+          id: 'red-cockaded-woodpecker',
+          name: '红冠啄木鸟',
+          englishName: 'Red-cockaded Woodpecker',
+          rarity: 'common',
+          weight: 45
+        },
+        {
+          id: 'green-racquet-tail',
+          name: '绿扇尾鹦鹉',
+          englishName: 'Green Racquet-tail',
+          rarity: 'uncommon',
+          weight: 25
+        },
+        {
+          id: 'bali-myna',
+          name: '巴厘椋鸟',
+          englishName: 'Bali Myna',
+          rarity: 'rare',
+          weight: 15
+        },
+        {
+          id: 'great-green-macaw',
+          name: '大绿金刚鹦鹉',
+          englishName: 'Great Green Macaw',
+          rarity: 'epic',
+          weight: 8
+        },
+        {
+          id: 'philippine-eagle',
+          name: '菲律宾鹰',
+          englishName: 'Philippine Eagle',
+          rarity: 'legendary',
+          weight: 5
+        },
+        {
+          id: 'helmeted-hornbill',
+          name: '盔犀鸟',
+          englishName: 'Helmeted Hornbill',
+          rarity: 'mythic',
+          weight: 2
+        }
+      ];
+
+      const RARITY_KEYS = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+
+      const RARITY_STYLES = {
+        common: { label: '常见', fill: '#f4f5d9', stroke: '#8aa05d', text: '#2f4526' },
+        uncommon: { label: '少见', fill: '#d9f6df', stroke: '#46a764', text: '#1f5131' },
+        rare: { label: '稀有', fill: '#dceeff', stroke: '#4e93d1', text: '#1c4a73' },
+        epic: { label: '史诗', fill: '#f0dcff', stroke: '#9a65c9', text: '#4c2864' },
+        legendary: { label: '传说', fill: '#fff0bf', stroke: '#d19a2f', text: '#6a4314' },
+        mythic: { label: '神话', fill: '#daf8f4', stroke: '#3aa89e', text: '#14544e' }
+      };
+
+      const BACKGROUND_STORY_SCENES = [
+        { type: 'net-trap' },
+        { type: 'slingshot' },
+        { type: 'cage-carrier' }
+      ];
+
+      function cloneSpecies(species) {
+        return {
+          id: species.id,
+          name: species.name,
+          englishName: species.englishName,
+          rarity: species.rarity,
+          weight: species.weight
+        };
+      }
+
+      function createEmptyRarityCounts() {
+        return RARITY_KEYS.reduce((counts, rarity) => {
+          counts[rarity] = 0;
+          return counts;
+        }, {});
+      }
+
+      const RangerRescueRules = {
+        getBirdSpecies() {
+          return BIRD_SPECIES.map(cloneSpecies);
+        },
+        getRarityKeys() {
+          return RARITY_KEYS.slice();
+        },
+        createEmptyRarityCounts() {
+          return createEmptyRarityCounts();
+        },
+        selectBirdSpecies(randomValue = Math.random()) {
+          const totalWeight = BIRD_SPECIES.reduce((total, species) => total + species.weight, 0);
+          const safeRandom = Number.isFinite(randomValue)
+            ? Math.max(0, Math.min(0.999999, randomValue))
+            : 0;
+          let ticket = safeRandom * totalWeight;
+
+          for (const species of BIRD_SPECIES) {
+            if (ticket < species.weight) {
+              return cloneSpecies(species);
+            }
+            ticket -= species.weight;
+          }
+
+          return cloneSpecies(BIRD_SPECIES[BIRD_SPECIES.length - 1]);
+        },
+        shouldSpawnRescue(score, hasActiveRescueTarget) {
+          return score > 0 && score % 3 === 0 && !hasActiveRescueTarget;
+        },
+        shouldSpawnRescueBeforeObstacle(obstacleNumber, hasActiveRescueTarget) {
+          return obstacleNumber > 1 && (obstacleNumber - 1) % 3 === 0 && !hasActiveRescueTarget;
+        },
+        advanceObstacleScore(currentScore, hasActiveRescueTarget) {
+          const score = currentScore + 1;
+          return { score, spawnRescue: this.shouldSpawnRescue(score, hasActiveRescueTarget) };
+        },
+        resolveRescue(runStats, species) {
+          const result = { score: runStats.score, rescueCount: runStats.rescueCount + 1 };
+          if (runStats.rescueRarityCounts || species) {
+            const rescueRarityCounts = Object.assign(
+              createEmptyRarityCounts(),
+              runStats.rescueRarityCounts || {}
+            );
+            const rarity = species && RARITY_KEYS.includes(species.rarity)
+              ? species.rarity
+              : 'common';
+            rescueRarityCounts[rarity] += 1;
+            result.rescueRarityCounts = rescueRarityCounts;
+          }
+          return result;
+        },
+        createRescueBird(target) {
+          return {
+            x: target.x,
+            y: target.y,
+            vx: 64,
+            vy: -118,
+            age: 0,
+            life: 1.1,
+            species: target.species ? cloneSpecies(target.species) : this.selectBirdSpecies(0)
+          };
+        },
+        createRescueTarget(obstacle, settings, randomValue = Math.random()) {
+          return {
+            x: obstacle.x + settings.pipeWidth + settings.rescueHorizontalOffset,
+            y: obstacle.top + settings.pipeGap / 2,
+            radius: settings.rescueRadius,
+            rescued: false,
+            species: this.selectBirdSpecies(randomValue)
+          };
+        },
+        createFreshRunState(best) {
+          return {
+            score: 0,
+            rescueCount: 0,
+            rescueRarityCounts: createEmptyRarityCounts(),
+            best,
+            rescueTarget: null,
+            rescueBirds: []
+          };
+        },
+        createBackgroundStoryScene(seed) {
+          const index = ((seed % BACKGROUND_STORY_SCENES.length) + BACKGROUND_STORY_SCENES.length) % BACKGROUND_STORY_SCENES.length;
+          const scene = BACKGROUND_STORY_SCENES[index];
+          return [
+            {
+              kind: 'background-story',
+              type: scene.type,
+              x: 24,
+              y: 424,
+              width: 136,
+              height: 92,
+              collidable: false
+            }
+          ];
+        }
+      };
+      // RULES_END
+
+      function resize() {
+        view.cssWidth = window.innerWidth;
+        view.cssHeight = window.innerHeight;
+        view.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        view.scale = Math.min(
+          view.cssWidth / world.width,
+          view.cssHeight / world.height
+        );
+        view.offsetX = (view.cssWidth - world.width * view.scale) / 2;
+        view.offsetY = (view.cssHeight - world.height * view.scale) / 2;
+
+        canvas.width = Math.floor(view.cssWidth * view.dpr);
+        canvas.height = Math.floor(view.cssHeight * view.dpr);
+      }
+
+      function resetGame() {
+        state.mode = 'playing';
+        state.ranger.x = 96;
+        state.ranger.y = 288;
+        state.ranger.vy = settings.flapPower;
+        state.ranger.rotation = -0.28;
+        state.pipes = [];
+        state.rescueTarget = null;
+        state.rescueBirds = [];
+        state.pipeTimer = 0.7;
+        state.nextObstacleVariant = 0;
+        state.score = 0;
+        state.rescueCount = 0;
+        state.rescueRarityCounts = RangerRescueRules.createEmptyRarityCounts();
+        state.newAchievementsThisRun = 0;
+        state.crashVx = 0;
+        state.crashTimer = 0;
+        state.rangerAnimationTime = 0;
+      }
+
+      function showStartPanel() {
+        state.mode = 'start-menu';
+        state.ranger.x = 96;
+        state.ranger.y = 288;
+        state.ranger.vy = 0;
+        state.ranger.rotation = 0;
+        state.pipes = [];
+        state.rescueTarget = null;
+        state.rescueBirds = [];
+        state.pipeTimer = 0;
+        state.nextObstacleVariant = 0;
+        state.score = 0;
+        state.rescueCount = 0;
+        state.rescueRarityCounts = RangerRescueRules.createEmptyRarityCounts();
+        state.newAchievementsThisRun = 0;
+        state.crashVx = 0;
+        state.crashTimer = 0;
+        state.groundShift = 0;
+        state.rangerAnimationTime = 0;
+      }
+
+      function showAchievementsPanel() {
+        state.mode = 'achievements';
+      }
+
+      function getStartPanelLayout() {
+        const panelX = 48;
+        const panelY = 184;
+        const panelW = world.width - 96;
+        const panelH = 252;
+
+        return {
+          panel: { x: panelX, y: panelY, width: panelW, height: panelH },
+          startButton: { x: panelX + 34, y: panelY + 45, width: panelW - 68, height: 64 },
+          achievementsButton: { x: panelX + 44, y: panelY + 132, width: panelW - 88, height: 44 },
+          hintY: panelY + 215
+        };
+      }
+
+      function getAchievementsPanelTrigger() {
+        return getStartPanelLayout().achievementsButton;
+      }
+
+      function getAchievementsPanelLayout() {
+        const panelX = 18;
+        const panelY = 56;
+        const panelW = world.width - 36;
+        const panelH = 536;
+
+        return {
+          panel: { x: panelX, y: panelY, width: panelW, height: panelH },
+          closeButton: { x: panelX + panelW - 40, y: panelY + 18, width: 24, height: 24 },
+          contentArea: { x: panelX + 20, y: panelY + 76, width: panelW - 40, height: panelH - 100 }
+        };
+      }
+
+      function pointInRect(x, y, rect) {
+        return (
+          x >= rect.x &&
+          x <= rect.x + rect.width &&
+          y >= rect.y &&
+          y <= rect.y + rect.height
+        );
+      }
+
+      function getWorldPointFromPointer(event) {
+        const bounds = typeof canvas.getBoundingClientRect === 'function'
+          ? canvas.getBoundingClientRect()
+          : { left: 0, top: 0, width: view.cssWidth, height: view.cssHeight };
+        const rectWidth = bounds.width || view.cssWidth || 1;
+        const rectHeight = bounds.height || view.cssHeight || 1;
+        const cssX = (event.clientX - bounds.left) * ((view.cssWidth || rectWidth) / rectWidth);
+        const cssY = (event.clientY - bounds.top) * ((view.cssHeight || rectHeight) / rectHeight);
+
+        return {
+          x: (cssX - view.offsetX) / view.scale,
+          y: (cssY - view.offsetY) / view.scale
+        };
+      }
+
+      function handleOverlayPointer(worldX, worldY) {
+        if (state.mode === 'start-menu') {
+          const layout = getStartPanelLayout();
+
+          if (pointInRect(worldX, worldY, layout.startButton)) {
+            playJumpSound();
+            resetGame();
+          } else if (pointInRect(worldX, worldY, layout.achievementsButton)) {
+            showAchievementsPanel();
+          }
+
+          return true;
+        }
+
+        if (state.mode === 'achievements') {
+          if (pointInRect(worldX, worldY, getAchievementsPanelLayout().closeButton)) {
+            showStartPanel();
+          }
+
+          return true;
+        }
+
+        return false;
+      }
+
+      function flap() {
+        if (
+          state.mode === 'falling' ||
+          state.mode === 'start-menu' ||
+          state.mode === 'achievements'
+        ) {
+          return;
+        }
+
+        if (state.mode === 'ready' || state.mode === 'gameover') {
+          showStartPanel();
+          return;
+        }
+
+        playJumpSound();
+
+        if (state.mode === 'start-menu') {
+          resetGame();
+          return;
+        }
+
+        if (state.mode !== 'playing') {
+          return;
+        }
+
+        state.ranger.vy = settings.flapPower;
+      }
+
+      function spawnPipe() {
+        const minTop = 84;
+        const maxTop = world.groundY - settings.pipeGap - 104;
+        const top = minTop + Math.random() * (maxTop - minTop);
+        const obstacleNumber = state.nextObstacleVariant + 1;
+        const pipe = {
+          x: world.width + 26,
+          top,
+          variant: state.nextObstacleVariant % OBSTACLE_THEMES.length,
+          passed: false
+        };
+
+        state.pipes.push(pipe);
+
+        if (RangerRescueRules.shouldSpawnRescueBeforeObstacle(
+          obstacleNumber,
+          Boolean(state.rescueTarget)
+        )) {
+          state.rescueTarget = RangerRescueRules.createRescueTarget(pipe, settings, Math.random());
+        }
+
+        state.nextObstacleVariant += 1;
+      }
+
+      function endGame() {
+        if (state.mode === 'gameover') {
+          return;
+        }
+
+        unlockAchievementById('first-death');
+        state.mode = 'gameover';
+        state.totalScore += state.score;
+        writeTotalScore(state.totalScore);
+        unlockThresholdAchievements('lifetime_total_score', state.totalScore);
+
+        if (state.score > state.best) {
+          state.best = state.score;
+          writeBestScore(state.best);
+        }
+      }
+
+      function beginCrash() {
+        if (state.mode === 'falling' || state.mode === 'gameover') {
+          return;
+        }
+
+        state.mode = 'falling';
+        state.crashTimer = 0;
+        state.crashVx = settings.crashDriftSpeed;
+        state.ranger.y = Math.min(state.ranger.y, world.groundY - settings.rangerRadius);
+        state.ranger.vy = state.ranger.y > settings.rangerRadius * 2.5
+          ? Math.min(state.ranger.vy, settings.crashLiftSpeed)
+          : Math.max(state.ranger.vy, 120);
+        state.ranger.rotation = Math.max(state.ranger.rotation, 0.62);
+      }
+
+      function update(delta) {
+        if (state.mode === 'ready') {
+          state.ranger.y = 288 + Math.sin(performance.now() / 260) * 8;
+          state.ranger.rotation = Math.sin(performance.now() / 380) * 0.08;
+          state.rangerAnimationTime = 0;
+          return;
+        }
+
+        if (state.mode === 'start-menu') {
+          state.rangerAnimationTime = 0;
+          return;
+        }
+
+        state.groundShift = (state.groundShift + settings.pipeSpeed * delta) % 36;
+
+        if (state.mode === 'falling') {
+          state.rangerAnimationTime += delta;
+          state.crashTimer += delta;
+          state.ranger.vy += settings.gravity * delta;
+          state.ranger.x = clamp(
+            state.ranger.x + state.crashVx * delta,
+            settings.rangerRadius,
+            world.width - settings.rangerRadius
+          );
+          state.ranger.y = Math.min(
+            world.groundY - settings.rangerRadius,
+            state.ranger.y + state.ranger.vy * delta
+          );
+          state.ranger.rotation = Math.min(1.05, state.ranger.rotation + delta * 2);
+
+          if (
+            state.ranger.y >= world.groundY - settings.rangerRadius &&
+            state.crashTimer >= settings.crashPanelDelay
+          ) {
+            state.ranger.y = world.groundY - settings.rangerRadius;
+            endGame();
+          }
+
+          return;
+        }
+
+        if (state.mode !== 'playing') {
+          return;
+        }
+
+        state.rangerAnimationTime += delta;
+        state.pipeTimer -= delta;
+        if (state.pipeTimer <= 0) {
+          spawnPipe();
+          state.pipeTimer += settings.pipeInterval;
+        }
+
+        state.ranger.vy += settings.gravity * delta;
+        state.ranger.y += state.ranger.vy * delta;
+        state.ranger.rotation = clamp(state.ranger.vy / 620, -0.45, 1.05);
+
+        for (const pipe of state.pipes) {
+          pipe.x -= settings.pipeSpeed * delta;
+
+          if (!pipe.passed && pipe.x + settings.pipeWidth < state.ranger.x) {
+            pipe.passed = true;
+            const progress = RangerRescueRules.advanceObstacleScore(
+              state.score,
+              Boolean(state.rescueTarget)
+            );
+            state.score = progress.score;
+            unlockThresholdAchievements('run_score', state.score);
+          }
+        }
+
+        // Recycle obstacles only after their decorative cap fully clears the world bounds.
+        state.pipes = state.pipes.filter((pipe) => pipe.x > -settings.pipeWidth - settings.pipeCullPadding);
+
+        updateRescueTarget(delta);
+        updateRescueBirds(delta);
+
+        const hitCeiling = state.ranger.y - settings.rangerRadius < 0;
+        const hitGround = state.ranger.y + settings.rangerRadius > world.groundY;
+        const hitObstacle = hitsPipe();
+
+        if (hitCeiling || hitObstacle) {
+          beginCrash();
+        } else if (hitGround) {
+          state.ranger.y = world.groundY - settings.rangerRadius;
+          endGame();
+        }
+      }
+
+      function hitsPipe() {
+        const rangerBox = getRangerObstacleHitbox();
+
+        for (const pipe of state.pipes) {
+          const topHit = rectsOverlap(
+            rangerBox.x,
+            rangerBox.y,
+            rangerBox.width,
+            rangerBox.height,
+            pipe.x,
+            -20,
+            settings.pipeWidth,
+            pipe.top + 20
+          );
+          const bottomY = pipe.top + settings.pipeGap;
+          const bottomHit = rectsOverlap(
+            rangerBox.x,
+            rangerBox.y,
+            rangerBox.width,
+            rangerBox.height,
+            pipe.x,
+            bottomY,
+            settings.pipeWidth,
+            world.groundY - bottomY
+          );
+
+          if (topHit || bottomHit) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      function getRangerObstacleHitbox() {
+        const hitbox = settings.rangerObstacleHitbox;
+        return {
+          x: state.ranger.x + hitbox.offsetX - hitbox.width / 2,
+          y: state.ranger.y + hitbox.offsetY - hitbox.height / 2,
+          width: hitbox.width,
+          height: hitbox.height
+        };
+      }
+
+      function updateRescueTarget(delta) {
+        if (!state.rescueTarget) return;
+        state.rescueTarget.x -= settings.pipeSpeed * delta;
+
+        if (!state.rescueTarget.rescued && hitsRescueTarget()) {
+          const result = RangerRescueRules.resolveRescue({
+            score: state.score,
+            rescueCount: state.rescueCount,
+            rescueRarityCounts: state.rescueRarityCounts
+          }, state.rescueTarget.species);
+          state.score = result.score;
+          state.rescueCount = result.rescueCount;
+          state.rescueRarityCounts = result.rescueRarityCounts;
+          unlockThresholdAchievements('run_rescue_count', state.rescueCount);
+          unlockAchievementForRarity(state.rescueTarget.species && state.rescueTarget.species.rarity);
+          state.rescueTarget.rescued = true;
+          state.rescueBirds.push(RangerRescueRules.createRescueBird(state.rescueTarget));
+        }
+
+        if (state.rescueTarget.x < -40 || state.rescueTarget.rescued) {
+          state.rescueTarget = null;
+        }
+      }
+
+      function updateRescueBirds(delta) {
+        for (const bird of state.rescueBirds) {
+          bird.age += delta;
+          bird.x += bird.vx * delta;
+          bird.y += bird.vy * delta;
+          bird.vy += 24 * delta;
+        }
+        state.rescueBirds = state.rescueBirds.filter((bird) => bird.age < bird.life);
+      }
+
+      function hitsRescueTarget() {
+        if (!state.rescueTarget || state.rescueTarget.rescued) return false;
+        const dx = state.ranger.x - state.rescueTarget.x;
+        const dy = state.ranger.y - state.rescueTarget.y;
+        const radius = settings.rangerRadius + state.rescueTarget.radius;
+        return dx * dx + dy * dy <= radius * radius;
+      }
+
+      function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+        return (
+          ax < bx + bw &&
+          ax + aw > bx &&
+          ay < by + bh &&
+          ay + ah > by
+        );
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function render() {
+        clearCanvas();
+        withWorld(() => {
+          drawGameBackground();
+          drawBackgroundStoryScenes();
+          drawObstacles();
+          drawRescueTarget();
+          drawRescueBirds();
+          drawGround();
+          drawRanger();
+          drawScore();
+          drawOverlay();
+        });
+      }
+
+      function clearCanvas() {
+        ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+        const gradient = ctx.createLinearGradient(0, 0, 0, view.cssHeight);
+        gradient.addColorStop(0, '#72c9ea');
+        gradient.addColorStop(0.68, '#b7e7df');
+        gradient.addColorStop(1, '#54b66f');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, view.cssWidth, view.cssHeight);
+      }
+
+      function withWorld(draw) {
+        ctx.save();
+        ctx.setTransform(
+          view.dpr * view.scale,
+          0,
+          0,
+          view.dpr * view.scale,
+          view.dpr * view.offsetX,
+          view.dpr * view.offsetY
+        );
+        ctx.beginPath();
+        ctx.rect(0, 0, world.width, world.height);
+        ctx.clip();
+        draw();
+        ctx.restore();
+      }
+
+      function drawGameBackground() {
+        if (drawRasterBackground()) {
+          return;
+        }
+
+        drawSky();
+        drawClouds();
+      }
+
+      function drawRasterBackground() {
+        const image = backgroundImage.image;
+        if (!backgroundImage.ready || !image || !image.width || !image.height) {
+          return false;
+        }
+
+        const imageRatio = image.width / image.height;
+        const worldRatio = world.width / world.height;
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = image.width;
+        let sourceHeight = image.height;
+
+        if (imageRatio > worldRatio) {
+          sourceWidth = image.height * worldRatio;
+          sourceX = (image.width - sourceWidth) / 2;
+        } else if (imageRatio < worldRatio) {
+          sourceHeight = image.width / worldRatio;
+          sourceY = (image.height - sourceHeight) / 2;
+        }
+
+        ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, world.width, world.height);
+        return true;
+      }
+
+      function drawSky() {
+        const sky = ctx.createLinearGradient(0, 0, 0, world.groundY);
+        sky.addColorStop(0, '#78d4f0');
+        sky.addColorStop(0.78, '#d1f1df');
+        sky.addColorStop(1, '#95d477');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, world.width, world.height);
+
+        ctx.fillStyle = '#68bd63';
+        drawHill(20, 560, 140, 86);
+        drawHill(170, 560, 190, 120);
+        ctx.fillStyle = '#4fae6c';
+        drawHill(-60, 572, 160, 90);
+        drawHill(245, 572, 150, 92);
+      }
+
+      function drawHill(x, y, width, height) {
+        ctx.beginPath();
+        ctx.moveTo(x, world.groundY);
+        ctx.quadraticCurveTo(x + width * 0.5, y - height, x + width, world.groundY);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawClouds() {
+        drawCloud(54, 98, 0.88);
+        drawCloud(254, 132, 0.72);
+        drawCloud(300, 68, 0.52);
+      }
+
+      function drawCloud(x, y, scale) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+        roundedRect(-28, 0, 88, 28, 14);
+        ctx.beginPath();
+        ctx.arc(-3, 1, 18, 0, Math.PI * 2);
+        ctx.arc(24, -10, 24, 0, Math.PI * 2);
+        ctx.arc(52, 2, 17, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawObstacles() {
+        for (const pipe of state.pipes) {
+          drawForestObstacle(pipe.x, -24, pipe.top + 24, true, pipe.variant);
+          drawForestObstacle(pipe.x, pipe.top + settings.pipeGap, world.groundY - pipe.top - settings.pipeGap, false, pipe.variant);
+        }
+      }
+
+      function drawForestObstacle(x, y, height, isTop, index) {
+        const width = settings.pipeWidth;
+        const theme = OBSTACLE_THEMES[index % OBSTACLE_THEMES.length];
+        drawModularObstacle(x, y, width, height, isTop, theme);
+      }
+
+      function drawModularObstacle(x, y, width, height, isTop, theme) {
+        if (height <= 0) return;
+
+        const capHeight = Math.min(theme.capHeight, Math.max(22, height * 0.28), height);
+        const bodyTop = isTop ? y : y + capHeight;
+        const bodyBottom = isTop ? y + height - capHeight : y + height;
+        const capY = isTop ? y + height - capHeight : y;
+        let segmentIndex = 0;
+
+        ctx.save();
+        ctx.fillStyle = theme.shadow;
+        roundedRect(x + 5, y + 4, width, height, 8);
+        ctx.restore();
+
+        for (let segmentY = bodyTop; segmentY < bodyBottom; segmentY += theme.segmentHeight) {
+          const segmentHeight = Math.min(theme.segmentHeight, bodyBottom - segmentY);
+          drawObstacleBodySegment(x, segmentY, width, segmentHeight, theme, segmentIndex);
+          drawObstacleDecoration(x, segmentY, width, segmentHeight, theme, segmentIndex);
+          segmentIndex += 1;
+        }
+        drawObstacleCap(x, capY, width, capHeight, theme, isTop);
+      }
+
+      function drawObstacleCap(x, y, width, height, theme, isTop) {
+        if (height <= 0) return;
+
+        const lip = Math.min(9, height * 0.32);
+        const bevelY = isTop ? y + height - lip : y;
+        const coreY = isTop ? y : y + lip;
+        const coreHeight = Math.max(0, height - lip);
+        const gradient = ctx.createLinearGradient(x, y, x + width, y);
+        gradient.addColorStop(0, theme.bodyLight);
+        gradient.addColorStop(0.62, theme.body);
+        gradient.addColorStop(1, theme.bodyDark);
+
+        ctx.fillStyle = theme.trim;
+        roundedRect(x - 6, bevelY, width + 12, lip + 4, 5);
+        ctx.strokeStyle = '#17231d';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = gradient;
+        roundedRect(x - 2, coreY, width + 4, coreHeight, 7);
+        ctx.strokeStyle = theme.trim;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = theme.side;
+        ctx.fillRect(x + width - 9, coreY + 3, 7, Math.max(0, coreHeight - 6));
+
+        if (theme.name === 'toxic') {
+          drawToxicWindow(x + 10, coreY + 6, width - 20, Math.max(8, coreHeight - 12), theme, isTop ? 0 : 1);
+        } else if (theme.name === 'steel') {
+          drawHazardStripe(x + 5, bevelY + 2, width - 10, Math.max(5, lip - 1), theme);
+          drawMetalHandle(x + width * 0.5 - 10, coreY + coreHeight * 0.42, theme);
+        } else {
+          drawRuinGlyphs(x + 12, coreY + 7, width - 24, Math.max(10, coreHeight - 14), theme, isTop ? 0 : 1);
+        }
+
+        drawRivets(x + 8, bevelY + lip * 0.48, width - 16, theme, 4);
+      }
+
+      function drawObstacleBodySegment(x, segmentY, width, segmentHeight, theme, segmentIndex) {
+        if (segmentHeight <= 0) return;
+
+        const gradient = ctx.createLinearGradient(x, segmentY, x + width, segmentY);
+        gradient.addColorStop(0, theme.bodyLight);
+        gradient.addColorStop(0.54, theme.body);
+        gradient.addColorStop(1, theme.bodyDark);
+
+        ctx.fillStyle = gradient;
+        roundedRect(x + 3, segmentY - 1, width - 6, segmentHeight + 2, 5);
+        ctx.strokeStyle = theme.trim;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        ctx.fillStyle = theme.side;
+        ctx.fillRect(x + width - 10, segmentY + 2, 7, Math.max(0, segmentHeight - 4));
+
+        if (theme.name === 'toxic') {
+          drawToxicWindow(x + 13, segmentY + 4, width - 26, segmentHeight - 8, theme, segmentIndex);
+          drawPipeClamp(x + 4, segmentY + segmentHeight - 7, width - 8, theme);
+        } else if (theme.name === 'steel') {
+          drawSteelPanel(x + 7, segmentY + 5, width - 14, segmentHeight - 10, theme, segmentIndex);
+        } else {
+          drawStoneBlockLines(x + 7, segmentY + 4, width - 14, segmentHeight - 8, theme, segmentIndex);
+          drawRuinGlyphs(x + 15, segmentY + 8, width - 30, segmentHeight - 16, theme, segmentIndex);
+        }
+      }
+
+      function drawObstacleDecoration(x, y, width, height, theme, segmentIndex) {
+        if (height <= 12) return;
+
+        if (theme.name === 'ruin') {
+          drawHangingVines(x, y, width, height, segmentIndex);
+        } else if (theme.name === 'toxic') {
+          drawWarningLight(x + width + 2, y + height * 0.52, segmentIndex);
+        } else {
+          drawSidePipes(x + width - 3, y + 4, height - 8, theme, segmentIndex);
+        }
+      }
+
+      function drawToxicWindow(x, y, width, height, theme, segmentIndex) {
+        if (width <= 0 || height <= 0) return;
+
+        const liquidY = y + height * (segmentIndex % 2 === 0 ? 0.24 : 0.34);
+        const glass = ctx.createLinearGradient(x, y, x + width, y + height);
+        glass.addColorStop(0, 'rgba(194, 255, 184, 0.58)');
+        glass.addColorStop(0.35, 'rgba(124, 255, 36, 0.76)');
+        glass.addColorStop(1, 'rgba(30, 95, 36, 0.82)');
+
+        ctx.fillStyle = 'rgba(17, 41, 28, 0.78)';
+        roundedRect(x - 2, y - 2, width + 4, height + 4, 4);
+        ctx.fillStyle = glass;
+        roundedRect(x, y, width, height, 4);
+
+        ctx.fillStyle = theme.glow;
+        ctx.beginPath();
+        ctx.ellipse(x + width * 0.5, liquidY, width * 0.43, 3.6, -0.06, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(220, 255, 172, 0.76)';
+        for (let i = 0; i < 4; i += 1) {
+          const bubbleX = x + 7 + ((i * 11 + segmentIndex * 5) % Math.max(9, width - 11));
+          const bubbleY = y + 8 + ((i * 13 + segmentIndex * 7) % Math.max(10, height - 12));
+          ctx.beginPath();
+          ctx.arc(bubbleX, bubbleY, i % 2 === 0 ? 1.8 : 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawPipeClamp(x, y, width, theme) {
+        if (width <= 0) return;
+
+        ctx.fillStyle = theme.metal;
+        roundedRect(x, y, width, 8, 3);
+        ctx.strokeStyle = theme.trim;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        drawRivets(x + 6, y + 4, width - 12, theme, 3);
+      }
+
+      function drawSteelPanel(x, y, width, height, theme, segmentIndex) {
+        if (width <= 0 || height <= 0) return;
+
+        ctx.fillStyle = segmentIndex % 2 === 0 ? '#586b5a' : '#4d5e50';
+        roundedRect(x, y, width, height, 3);
+        ctx.strokeStyle = theme.trim;
+        ctx.lineWidth = 1.3;
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(20, 31, 26, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y + height * 0.5);
+        ctx.lineTo(x + width - 5, y + height * 0.5);
+        ctx.moveTo(x + width * 0.5, y + 3);
+        ctx.lineTo(x + width * 0.5, y + height - 3);
+        ctx.stroke();
+
+        drawRivets(x + 7, y + 6, width - 14, theme, 4);
+        drawHazardStripe(x + width - 9, y + 2, 6, height - 4, theme);
+      }
+
+      function drawStoneBlockLines(x, y, width, height, theme, segmentIndex) {
+        if (width <= 0 || height <= 0) return;
+
+        ctx.strokeStyle = 'rgba(35, 56, 38, 0.72)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x + 3, y + height * 0.42);
+        ctx.lineTo(x + width - 3, y + height * 0.35);
+        ctx.moveTo(x + width * 0.42, y + 2);
+        ctx.lineTo(x + width * 0.34, y + height - 3);
+        ctx.moveTo(x + width * 0.72, y + 4);
+        ctx.lineTo(x + width * 0.82, y + height - 6);
+        ctx.stroke();
+
+        ctx.fillStyle = segmentIndex % 2 === 0 ? 'rgba(31, 60, 30, 0.22)' : 'rgba(153, 189, 97, 0.16)';
+        roundedRect(x + 2, y + 2, width - 4, height - 4, 3);
+      }
+
+      function drawRuinGlyphs(x, y, width, height, theme, segmentIndex) {
+        if (width <= 0 || height <= 0) return;
+
+        ctx.save();
+        ctx.shadowColor = theme.glow;
+        ctx.shadowBlur = 5;
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = 1.7;
+        const glyphX = x + width * (segmentIndex % 2 === 0 ? 0.35 : 0.62);
+        const glyphY = y + height * 0.52;
+        ctx.beginPath();
+        ctx.moveTo(glyphX - 5, glyphY - 7);
+        ctx.lineTo(glyphX, glyphY - 2);
+        ctx.lineTo(glyphX - 4, glyphY + 4);
+        ctx.moveTo(glyphX + 5, glyphY - 7);
+        ctx.lineTo(glyphX + 1, glyphY - 1);
+        ctx.lineTo(glyphX + 6, glyphY + 5);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawHangingVines(x, y, width, height, segmentIndex) {
+        ctx.strokeStyle = '#234c24';
+        ctx.lineWidth = 3;
+        const offset = segmentIndex % 2 === 0 ? 0 : 7;
+        ctx.beginPath();
+        ctx.moveTo(x + 8 + offset, y + 3);
+        ctx.quadraticCurveTo(x + width * 0.4, y + height * 0.56, x + width - 9, y + height - 5);
+        ctx.stroke();
+
+        ctx.fillStyle = '#79a946';
+        for (let i = 0; i < 2; i += 1) {
+          const leafX = x + 15 + ((segmentIndex * 17 + i * 19) % Math.max(20, width - 20));
+          const leafY = y + 8 + i * Math.max(7, height * 0.34);
+          ctx.beginPath();
+          ctx.ellipse(leafX, leafY, 5, 2.4, i === 0 ? -0.55 : 0.55, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function drawWarningLight(x, y, segmentIndex) {
+        if (segmentIndex % 2 !== 0) return;
+
+        ctx.fillStyle = '#354236';
+        roundedRect(x, y - 8, 6, 16, 3);
+        ctx.fillStyle = '#ff8d2b';
+        ctx.shadowColor = 'rgba(255, 141, 43, 0.55)';
+        ctx.shadowBlur = 8;
+        roundedRect(x + 1, y - 5, 4, 10, 2);
+        ctx.shadowBlur = 0;
+      }
+
+      function drawSidePipes(x, y, height, theme, segmentIndex) {
+        if (height <= 0 || segmentIndex % 2 !== 0) return;
+
+        ctx.strokeStyle = '#2a312d';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 3);
+        ctx.lineTo(x + 7, y + 3);
+        ctx.lineTo(x + 7, y + height - 3);
+        ctx.lineTo(x, y + height - 3);
+        ctx.stroke();
+
+        ctx.strokeStyle = theme.metal;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x, y + height * 0.46);
+        ctx.lineTo(x + 9, y + height * 0.46);
+        ctx.stroke();
+      }
+
+      function drawHazardStripe(x, y, width, height, theme) {
+        if (width <= 0 || height <= 0) return;
+
+        ctx.save();
+        ctx.fillStyle = '#202820';
+        ctx.fillRect(x, y, width, height);
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.clip();
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = 4;
+        for (let stripeX = x - height; stripeX < x + width + height; stripeX += 12) {
+          ctx.beginPath();
+          ctx.moveTo(stripeX, y + height);
+          ctx.lineTo(stripeX + height, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawMetalHandle(x, y, theme) {
+        ctx.strokeStyle = theme.trim;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 6);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + 20, y);
+        ctx.lineTo(x + 20, y + 6);
+        ctx.stroke();
+      }
+
+      function drawRivets(x, y, width, theme, count) {
+        if (width <= 0 || count <= 0) return;
+
+        ctx.fillStyle = '#1f2b25';
+        for (let i = 0; i < count; i += 1) {
+          const rivetX = count === 1 ? x + width * 0.5 : x + (width * i) / (count - 1);
+          ctx.beginPath();
+          ctx.arc(rivetX, y, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = theme.metal;
+          ctx.beginPath();
+          ctx.arc(rivetX - 0.5, y - 0.5, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#1f2b25';
+        }
+      }
+
+      function drawBackgroundStoryScenes() {
+        const scenes = RangerRescueRules.createBackgroundStoryScene(state.backgroundStorySeed);
+        ctx.save();
+        for (const scene of scenes) {
+          drawBackgroundStoryFallback(scene);
+        }
+        ctx.restore();
+      }
+
+      function drawBackgroundStoryFallback(scene) {
+        if (scene.type === 'slingshot') {
+          return;
+        }
+
+        ctx.save();
+        ctx.translate(scene.x, scene.y);
+        ctx.scale(scene.width / 136, scene.height / 92);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.fillStyle = 'rgba(45, 78, 58, 0.42)';
+        ctx.strokeStyle = 'rgba(45, 78, 58, 0.44)';
+        ctx.lineWidth = 3;
+        drawStoryGrass();
+
+        if (scene.type === 'cage-carrier') {
+          drawWalkingPoacher(18, 76);
+          ctx.beginPath();
+          ctx.moveTo(45, 43);
+          ctx.lineTo(72, 39);
+          ctx.stroke();
+          drawSmallCage(72, 60);
+          ctx.beginPath();
+          ctx.ellipse(112, 78, 21, 8, -0.1, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          drawStandingPoacher(16, 76);
+          ctx.beginPath();
+          ctx.moveTo(42, 70);
+          ctx.lineTo(99, 22);
+          ctx.moveTo(43, 70);
+          ctx.quadraticCurveTo(74, 52, 112, 18);
+          ctx.moveTo(44, 70);
+          ctx.quadraticCurveTo(82, 76, 124, 65);
+          ctx.stroke();
+          ctx.globalAlpha *= 0.72;
+          ctx.beginPath();
+          ctx.ellipse(86, 52, 32, 18, -0.45, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha /= 0.72;
+          drawSmallCage(110, 74);
+        }
+
+        ctx.restore();
+      }
+
+      function drawStoryGrass() {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(56, 111, 66, 0.18)';
+        ctx.lineWidth = 2;
+        for (let x = 4; x < 132; x += 13) {
+          ctx.beginPath();
+          ctx.moveTo(x, 87);
+          ctx.lineTo(x + 5, 82);
+          ctx.moveTo(x + 5, 87);
+          ctx.lineTo(x + 9, 83);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawCrouchingPoacher(x, y) {
+        ctx.beginPath();
+        ctx.arc(x + 15, y - 41, 8, 0, Math.PI * 2);
+        ctx.fill();
+        roundedRect(x + 6, y - 35, 22, 25, 7);
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y - 10);
+        ctx.lineTo(x, y);
+        ctx.moveTo(x + 24, y - 11);
+        ctx.lineTo(x + 33, y);
+        ctx.moveTo(x + 25, y - 28);
+        ctx.lineTo(x + 42, y - 22);
+        ctx.stroke();
+      }
+
+      function drawWalkingPoacher(x, y) {
+        ctx.beginPath();
+        ctx.arc(x + 16, y - 50, 8, 0, Math.PI * 2);
+        ctx.fill();
+        roundedRect(x + 6, y - 43, 23, 33, 7);
+        ctx.beginPath();
+        ctx.moveTo(x + 12, y - 10);
+        ctx.lineTo(x + 2, y);
+        ctx.moveTo(x + 24, y - 10);
+        ctx.lineTo(x + 35, y - 1);
+        ctx.stroke();
+      }
+
+      function drawStandingPoacher(x, y) {
+        ctx.beginPath();
+        ctx.arc(x + 14, y - 53, 8, 0, Math.PI * 2);
+        ctx.fill();
+        roundedRect(x + 5, y - 46, 22, 36, 7);
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y - 10);
+        ctx.lineTo(x + 3, y);
+        ctx.moveTo(x + 22, y - 10);
+        ctx.lineTo(x + 31, y);
+        ctx.moveTo(x + 25, y - 34);
+        ctx.lineTo(x + 42, y - 44);
+        ctx.stroke();
+      }
+
+      function drawTinyBird(x, y) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, 8, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x - 2, y);
+        ctx.lineTo(x - 12, y - 8);
+        ctx.moveTo(x + 2, y);
+        ctx.lineTo(x + 12, y - 7);
+        ctx.stroke();
+      }
+
+      function drawSmallCage(x, y) {
+        ctx.strokeRect(x, y - 22, 24, 22);
+        ctx.beginPath();
+        ctx.moveTo(x, y - 22);
+        ctx.quadraticCurveTo(x + 12, y - 36, x + 24, y - 22);
+        ctx.moveTo(x + 8, y - 22);
+        ctx.lineTo(x + 8, y);
+        ctx.moveTo(x + 16, y - 22);
+        ctx.lineTo(x + 16, y);
+        ctx.stroke();
+      }
+
+      function drawRescueTarget() {
+        const target = state.rescueTarget;
+        if (!target || target.rescued) return;
+        ctx.save();
+        ctx.translate(target.x, target.y);
+        if (rescueCageAsset.ready && rescueCageAsset.image) {
+          ctx.drawImage(rescueCageAsset.image, -26, -50, 52, 82);
+        } else {
+          drawCagedBird();
+          drawRescueCage();
+          drawCageVeil();
+        }
+        ctx.restore();
+      }
+
+      function drawRescueCage() {
+        ctx.save();
+        ctx.lineJoin = 'round';
+        ctx.fillStyle = '#fff0bf';
+        ctx.strokeStyle = '#4f3b2a';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(-18, -18);
+        ctx.quadraticCurveTo(0, -36, 18, -18);
+        ctx.lineTo(18, 14);
+        ctx.lineTo(-18, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = '#6d5640';
+        ctx.lineWidth = 1.7;
+        ctx.beginPath();
+        for (let barX = -12; barX <= 12; barX += 6) {
+          ctx.moveTo(barX, -20 + Math.abs(barX) * 0.3);
+          ctx.lineTo(barX, 12);
+        }
+        ctx.moveTo(-16, -7);
+        ctx.lineTo(16, -7);
+        ctx.moveTo(-16, 4);
+        ctx.lineTo(16, 4);
+        ctx.stroke();
+
+        ctx.fillStyle = '#806344';
+        roundedRect(-18, 12, 36, 6, 3);
+        ctx.strokeStyle = '#4f3b2a';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-6, -28);
+        ctx.quadraticCurveTo(0, -42, 6, -28);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawCagedBird() {
+        ctx.save();
+        ctx.fillStyle = 'rgba(48, 38, 28, 0.62)';
+        ctx.beginPath();
+        ctx.ellipse(-1, 1, 9, 6, -0.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(48, 38, 28, 0.72)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-7, 0);
+        ctx.lineTo(-14, -5);
+        ctx.moveTo(5, 0);
+        ctx.lineTo(12, -4);
+        ctx.stroke();
+
+        ctx.fillStyle = '#5a432f';
+        ctx.beginPath();
+        ctx.arc(0, -2, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawCageVeil() {
+        ctx.save();
+        const cover = ctx.createLinearGradient(0, -30, 0, 16);
+        cover.addColorStop(0, '#8f7048');
+        cover.addColorStop(0.55, '#6e563a');
+        cover.addColorStop(1, '#4f3b2a');
+        ctx.fillStyle = cover;
+        ctx.beginPath();
+        ctx.moveTo(-15, -19);
+        ctx.quadraticCurveTo(0, -32, 15, -19);
+        ctx.lineTo(15, 12);
+        ctx.lineTo(-15, 12);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = '#3f2f22';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(255, 232, 171, 0.5)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-10, -14);
+        ctx.quadraticCurveTo(0, -23, 10, -14);
+        ctx.moveTo(-9, -2);
+        ctx.lineTo(9, -2);
+        ctx.moveTo(-9, 7);
+        ctx.lineTo(9, 7);
+        ctx.stroke();
+
+        ctx.font = '900 17px Arial, Helvetica, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fff0bf';
+        ctx.fillText('?', 0, -5);
+        ctx.restore();
+      }
+
+      function drawRescueBirds() {
+        for (const bird of state.rescueBirds) {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, 1 - bird.age / bird.life);
+          ctx.translate(bird.x, bird.y);
+          ctx.rotate(-0.18 + Math.sin(bird.age * 9) * 0.08);
+          const spriteAsset = getRescueBirdSpriteAsset(bird.species, bird.age);
+          if (spriteAsset && spriteAsset.ready && spriteAsset.image) {
+            ctx.drawImage(spriteAsset.image, -36, -24, 72, 48);
+          } else {
+            drawSpeciesBird(bird.species, 0.78, Math.sin(bird.age * 24));
+          }
+          drawRarityBadge(bird.species, 3, -30, 0.95);
+          ctx.restore();
+        }
+      }
+
+      function drawRarityBadge(species, x, y, alpha = 1) {
+        const rarity = species && RARITY_STYLES[species.rarity]
+          ? RARITY_STYLES[species.rarity]
+          : RARITY_STYLES.common;
+        const previousAlpha = typeof ctx.globalAlpha === 'number' ? ctx.globalAlpha : 1;
+
+        ctx.save();
+        ctx.globalAlpha = previousAlpha * alpha;
+        ctx.translate(x, y);
+        ctx.fillStyle = rarity.fill;
+        roundedRect(-21, -8, 42, 16, 5);
+        ctx.strokeStyle = rarity.stroke;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.font = '700 10px Arial, Helvetica, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = rarity.text;
+        ctx.fillText(rarity.label, 0, 0.5);
+        ctx.restore();
+      }
+
+      function drawSpeciesBird(species, scale = 1, wingLift = 0) {
+        const bird = species || RangerRescueRules.selectBirdSpecies(0);
+
+        ctx.save();
+        ctx.scale(scale, scale);
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 2.1;
+        ctx.strokeStyle = '#241b16';
+
+        if (bird.id === 'green-racquet-tail') {
+          drawGreenRacquetTail(wingLift);
+        } else if (bird.id === 'bali-myna') {
+          drawBaliMyna(wingLift);
+        } else if (bird.id === 'great-green-macaw') {
+          drawGreatGreenMacaw(wingLift);
+        } else if (bird.id === 'philippine-eagle') {
+          drawPhilippineEagle(wingLift);
+        } else if (bird.id === 'helmeted-hornbill') {
+          drawHelmetedHornbill(wingLift);
+        } else {
+          drawRedCockadedWoodpecker(wingLift);
+        }
+
+        ctx.restore();
+      }
+
+      function drawRedCockadedWoodpecker(wingLift) {
+        drawSimpleTail('#151918', '#f0f1e8', -14, 1, 22, 5);
+        drawFlightWing('#171c1a', '#eef0e5', wingLift, 0.86);
+        drawBodyEllipse('#18201e', '#eef0e5', 0, 0, 15, 7);
+        drawHead(11, -4, 6.2, '#141817');
+        drawCheek(12, -4, 3.8, '#f2efe1');
+        drawFeatherMark(-1, -2, '#f2efe1');
+        drawForeheadMark(9, -9, '#d6372f');
+        drawBeak(16, -4, 12, '#1e1a16');
+        drawEye(12, -5);
+      }
+
+      function drawGreenRacquetTail(wingLift) {
+        drawRacketTail();
+        drawFlightWing('#38a940', '#1f7430', wingLift, 0.96);
+        drawBodyEllipse('#49b43f', '#7cc950', 0, 0, 15, 7);
+        drawHead(11, -4, 6.6, '#6ea6ce');
+        drawCheek(12, -2, 3.2, '#d7d8aa');
+        drawBeak(16, -3, 7, '#34352d');
+        drawEye(12, -5);
+      }
+
+      function drawBaliMyna(wingLift) {
+        drawSimpleTail('#f6f5e8', '#171c1c', -14, 2, 20, 5);
+        drawFlightWing('#f7f6eb', '#1c2422', wingLift, 0.84);
+        drawBodyEllipse('#fbf9ec', '#e5e1ca', 0, 0, 14, 7);
+        drawHead(11, -4, 6.4, '#fbf7e7');
+        drawCrest(8, -9, '#f8f4df', 4);
+        drawCheek(12, -4, 3.5, '#65b9df');
+        drawBeak(16, -3, 8, '#e2bf50');
+        drawEye(12, -5);
+      }
+
+      function drawGreatGreenMacaw(wingLift) {
+        drawSimpleTail('#2f8d54', '#1c7493', -14, 1, 32, 6);
+        drawFlightWing('#2e9b4e', '#1b719b', wingLift, 1.08);
+        drawBodyEllipse('#3da946', '#79c153', 0, 0, 18, 8);
+        drawHead(14, -5, 7.8, '#3da946');
+        drawCheek(15, -4, 4.8, '#f2ddb9');
+        drawForeheadMark(13, -11, '#c62f23');
+        drawBeak(20, -4, 11, '#31302c');
+        drawEye(15, -6);
+      }
+
+      function drawPhilippineEagle(wingLift) {
+        drawSimpleTail('#594632', '#2f271d', -14, 2, 25, 6);
+        drawFlightWing('#6b523a', '#3b3025', wingLift, 1.12);
+        drawBodyEllipse('#704f35', '#f6f1dd', 0, 0, 17, 8);
+        drawHead(13, -6, 7.8, '#f2dfbd');
+        drawCrest(8, -12, '#f4e6c7', 7);
+        drawBeak(19, -5, 10, '#2c2b27');
+        drawEye(14, -7);
+      }
+
+      function drawHelmetedHornbill(wingLift) {
+        drawSimpleTail('#1d1d1b', '#f8eee0', -14, 1, 27, 6);
+        drawFlightWing('#23241f', '#efe7d1', wingLift, 1.04);
+        drawBodyEllipse('#25251f', '#f7efe0', 0, 0, 17, 8);
+        drawHead(13, -5, 7.4, '#6b2a1e');
+        drawHelmetCasque();
+        drawBeak(19, -4, 14, '#d6b84f');
+        drawEye(14, -6);
+      }
+
+      function drawFlightWing(baseColor, accentColor, wingLift, size) {
+        const lift = clamp(wingLift, -1, 1);
+        const wingTipY = -17 - lift * 9;
+        const lowerY = 4 + lift * 4;
+
+        ctx.fillStyle = baseColor;
+        ctx.beginPath();
+        ctx.moveTo(-2, -3);
+        ctx.quadraticCurveTo(-15 * size, wingTipY, -30 * size, wingTipY + 7);
+        ctx.quadraticCurveTo(-20 * size, lowerY + 4, -4, 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        for (let i = 0; i < 4; i += 1) {
+          const featherX = -8 - i * 5 * size;
+          ctx.moveTo(-2, -2);
+          ctx.lineTo(featherX, wingTipY + 8 + i * 2);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = '#241b16';
+        ctx.lineWidth = 2.1;
+      }
+
+      function drawBodyEllipse(bodyColor, chestColor, x, y, width, height) {
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath();
+        ctx.ellipse(x, y, width, height, -0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = chestColor;
+        ctx.beginPath();
+        ctx.ellipse(x + 5, y + 2, width * 0.46, height * 0.58, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawHead(x, y, radius, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawCheek(x, y, radius, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawBeak(x, y, length, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x, y - 3);
+        ctx.lineTo(x + length, y);
+        ctx.lineTo(x, y + 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawEye(x, y) {
+        ctx.fillStyle = '#f7f3db';
+        ctx.beginPath();
+        ctx.arc(x, y, 1.9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#17120f';
+        ctx.beginPath();
+        ctx.arc(x + 0.4, y, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawSimpleTail(baseColor, accentColor, x, y, length, height) {
+        ctx.fillStyle = baseColor;
+        ctx.beginPath();
+        ctx.moveTo(x, y - height);
+        ctx.lineTo(x - length, y - 4);
+        ctx.lineTo(x - length + 2, y + 4);
+        ctx.lineTo(x, y + height);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y - 2);
+        ctx.lineTo(x - length + 5, y - 3);
+        ctx.moveTo(x - 2, y + 2);
+        ctx.lineTo(x - length + 6, y + 3);
+        ctx.stroke();
+        ctx.strokeStyle = '#241b16';
+        ctx.lineWidth = 2.1;
+      }
+
+      function drawRacketTail() {
+        ctx.strokeStyle = '#1d5c2c';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-12, 1);
+        ctx.lineTo(-42, -2);
+        ctx.moveTo(-12, 3);
+        ctx.lineTo(-40, 9);
+        ctx.stroke();
+
+        ctx.fillStyle = '#45aa45';
+        ctx.beginPath();
+        ctx.ellipse(-46, -2, 5, 2.8, 0.2, 0, Math.PI * 2);
+        ctx.ellipse(-44, 10, 5, 2.8, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawCrest(x, y, color, count) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        for (let i = 0; i < count; i += 1) {
+          const spikeX = x - i * 2.4;
+          ctx.moveTo(spikeX + 7, y + 6);
+          ctx.lineTo(spikeX, y - i * 0.9);
+          ctx.lineTo(spikeX + 3, y + 9);
+        }
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawFeatherMark(x, y, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y - 2);
+        ctx.lineTo(x + 4, y - 3);
+        ctx.moveTo(x - 4, y + 2);
+        ctx.lineTo(x + 5, y + 1);
+        ctx.stroke();
+        ctx.strokeStyle = '#241b16';
+        ctx.lineWidth = 2.1;
+      }
+
+      function drawForeheadMark(x, y, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 4.2, 2, -0.18, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawHelmetCasque() {
+        ctx.fillStyle = '#d8b44a';
+        ctx.beginPath();
+        ctx.moveTo(10, -11);
+        ctx.quadraticCurveTo(19, -17, 25, -7);
+        ctx.quadraticCurveTo(19, -6, 12, -7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#b33523';
+        ctx.beginPath();
+        ctx.ellipse(11, -7, 4, 5, -0.25, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawGround() {
+        ctx.fillStyle = '#77c75e';
+        ctx.fillRect(0, world.groundY, world.width, world.height - world.groundY);
+
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(0, world.groundY, world.width, 3);
+
+        ctx.fillStyle = '#52a85a';
+        for (let x = 8 - state.groundShift; x < world.width + 40; x += 36) {
+          ctx.fillRect(x, world.groundY + 38, 18, 4);
+        }
+      }
+
+      function getRescueBirdFrameIndex(age) {
+        const frameCount = 4;
+        const safeAge = Math.max(0, age);
+        return Math.floor((safeAge + 0.0001) / RESCUE_BIRD_FLIGHT_FRAME_DURATION) % frameCount;
+      }
+
+      function getRescueBirdSpriteAsset(species, age) {
+        const speciesId = species && species.id;
+        const entry = speciesId ? rescueBirdSpriteAssets[speciesId] : null;
+        if (!entry || !entry.frames.length) {
+          return null;
+        }
+        return entry.frames[getRescueBirdFrameIndex(age)];
+      }
+
+      function getRangerFlightFrameIndex(animationTime) {
+        const frameCount = RANGER_FLIGHT_FRAME_SOURCES.length || 1;
+        const safeTime = Math.max(0, animationTime);
+        return Math.floor((safeTime + 0.0001) / RANGER_FLIGHT_FRAME_DURATION) % frameCount;
+      }
+
+      function getRangerSpriteSource(mode, animationTime) {
+        if (mode === 'playing' || mode === 'falling') {
+          return RANGER_FLIGHT_FRAME_SOURCES[getRangerFlightFrameIndex(animationTime)];
+        }
+
+        return RANGER_IDLE_SPRITE_SRC;
+      }
+
+      function getRangerSpriteAsset(mode, animationTime) {
+        if (mode === 'playing' || mode === 'falling') {
+          return rangerSpriteAssets.flight[getRangerFlightFrameIndex(animationTime)];
+        }
+
+        return rangerSpriteAssets.idle;
+      }
+
+      function drawRangerSprite(image) {
+        const width = settings.rangerSpriteWidth;
+        const height = settings.rangerSpriteHeight;
+        ctx.drawImage(image, -width / 2, -height / 2, width, height);
+      }
+
+      function drawRangerVectorFallback() {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+        ctx.beginPath();
+        ctx.ellipse(-5, 21, 18, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#526a3f';
+        ctx.strokeStyle = '#243321';
+        ctx.lineWidth = 2;
+        roundedRect(-10, -6, 21, 24, 5);
+        ctx.stroke();
+        ctx.fillStyle = '#8c6b42';
+        roundedRect(-15, -3, 7, 17, 3);
+        ctx.fillStyle = '#6f8552';
+        roundedRect(7, -1, 8, 18, 3);
+        ctx.fillStyle = '#d1a46f';
+        ctx.beginPath();
+        ctx.arc(0, -14, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4a5e33';
+        roundedRect(-12, -25, 24, 8, 3);
+        roundedRect(-8, -31, 16, 10, 4);
+        ctx.fillStyle = '#1f2b22';
+        ctx.beginPath();
+        ctx.arc(3, -15, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#26351f';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-8, 16);
+        ctx.lineTo(-13, 27);
+        ctx.moveTo(8, 16);
+        ctx.lineTo(15, 26);
+        ctx.stroke();
+      }
+
+      function drawRanger() {
+        const ranger = state.ranger;
+        const spriteAsset = getRangerSpriteAsset(state.mode, state.rangerAnimationTime);
+
+        ctx.save();
+        ctx.translate(ranger.x, ranger.y);
+        ctx.rotate(ranger.rotation);
+
+        if (spriteAsset && spriteAsset.ready && spriteAsset.image) {
+          drawRangerSprite(spriteAsset.image);
+        } else {
+          drawRangerVectorFallback();
+        }
+
+        ctx.restore();
+      }
+
+      function drawScore() {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.font = '700 48px Arial, Helvetica, sans-serif';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = 'rgba(17, 55, 64, 0.55)';
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeText(String(state.score), world.width / 2, 28);
+        ctx.fillText(String(state.score), world.width / 2, 28);
+
+        ctx.font = '700 14px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(21, 49, 58, 0.82)';
+        ctx.fillText(`BEST ${state.best}`, world.width / 2, 84);
+        ctx.restore();
+      }
+
+      function drawOverlay() {
+        if (state.mode === 'playing' || state.mode === 'falling') {
+          return;
+        }
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        if (state.mode === 'ready') {
+          drawTitle('森林救援', 206);
+          drawTapHint('点击 / 触屏 打开开始面板', 334);
+        } else if (state.mode === 'start-menu') {
+          drawStartPanel();
+        } else if (state.mode === 'achievements') {
+          drawAchievementsPanel();
+        } else {
+          drawResultsPanel();
+        }
+
+        ctx.restore();
+      }
+
+      function drawTitle(text, y) {
+        ctx.font = '900 36px Arial, Helvetica, sans-serif';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#15313a';
+        ctx.fillStyle = '#fff7e7';
+        ctx.strokeText(text, world.width / 2, y);
+        ctx.fillText(text, world.width / 2, y);
+      }
+
+      function drawStartPanel() {
+        const layout = getStartPanelLayout();
+        const { panel, startButton, achievementsButton, hintY } = layout;
+        const panelX = panel.x;
+        const panelY = panel.y;
+        const panelW = panel.width;
+        const panelH = panel.height;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = 'rgba(8, 24, 22, 0.32)';
+        roundedRect(panelX + 5, panelY + 7, panelW, panelH, 8);
+        ctx.fillStyle = '#b48754';
+        roundedRect(panelX, panelY, panelW, panelH, 8);
+        ctx.strokeStyle = '#6f4d2e';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(224, 240, 198, 0.8)';
+        roundedRect(panelX + 8, panelY + 10, panelW - 16, panelH - 20, 7);
+        ctx.strokeStyle = 'rgba(69, 84, 55, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(246, 255, 198, 0.9)';
+        roundedRect(startButton.x, startButton.y, startButton.width, startButton.height, 6);
+        ctx.strokeStyle = 'rgba(98, 126, 72, 0.72)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.font = '900 34px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText('开始游戏', startButton.x + startButton.width / 2, startButton.y + startButton.height / 2);
+
+        ctx.fillStyle = 'rgba(224, 240, 198, 0.7)';
+        roundedRect(
+          achievementsButton.x,
+          achievementsButton.y,
+          achievementsButton.width,
+          achievementsButton.height,
+          6
+        );
+        ctx.font = '900 22px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText(
+          '成就',
+          achievementsButton.x + achievementsButton.width / 2,
+          achievementsButton.y + achievementsButton.height / 2
+        );
+
+        ctx.font = '900 17px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(59, 22, 15, 0.9)';
+        ctx.fillText('点击按钮继续', world.width / 2, hintY);
+
+        ctx.restore();
+      }
+
+      function drawAchievementsPanel() {
+        const layout = getAchievementsPanelLayout();
+        const { panel, closeButton, contentArea } = layout;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = 'rgba(8, 24, 22, 0.32)';
+        roundedRect(panel.x + 5, panel.y + 7, panel.width, panel.height, 8);
+        ctx.fillStyle = '#b48754';
+        roundedRect(panel.x, panel.y, panel.width, panel.height, 8);
+        ctx.strokeStyle = '#6f4d2e';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(224, 240, 198, 0.8)';
+        roundedRect(panel.x + 8, panel.y + 10, panel.width - 16, panel.height - 20, 7);
+        ctx.strokeStyle = 'rgba(69, 84, 55, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = '900 34px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText('成就', world.width / 2, panel.y + 42);
+
+        ctx.fillStyle = 'rgba(246, 255, 198, 0.9)';
+        roundedRect(
+          closeButton.x - 6,
+          closeButton.y - 6,
+          closeButton.width + 12,
+          closeButton.height + 12,
+          6
+        );
+        ctx.strokeStyle = 'rgba(98, 126, 72, 0.72)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.font = '900 24px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText('×', closeButton.x + closeButton.width / 2, closeButton.y + closeButton.height / 2 + 1);
+
+        ctx.fillStyle = 'rgba(246, 255, 198, 0.38)';
+        roundedRect(contentArea.x, contentArea.y, contentArea.width, contentArea.height, 6);
+        ctx.strokeStyle = 'rgba(98, 126, 72, 0.58)';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        drawAchievementGrid(contentArea);
+
+        ctx.restore();
+      }
+
+      function drawAchievementGrid(contentArea) {
+        const columns = ACHIEVEMENT_DEFINITIONS.length > 6 ? 3 : 2;
+        const rows = Math.ceil(ACHIEVEMENT_DEFINITIONS.length / columns);
+        const columnGap = columns === 3 ? 10 : 12;
+        const rowGap = columns === 3 ? 12 : 10;
+        const cardWidth = (contentArea.width - columnGap * (columns - 1)) / columns;
+        const cardHeight = (contentArea.height - rowGap * (rows - 1)) / rows;
+
+        for (let i = 0; i < ACHIEVEMENT_DEFINITIONS.length; i += 1) {
+          const achievement = ACHIEVEMENT_DEFINITIONS[i];
+          const column = i % columns;
+          const row = Math.floor(i / columns);
+          const x = contentArea.x + column * (cardWidth + columnGap);
+          const y = contentArea.y + row * (cardHeight + rowGap);
+          drawAchievementCard(achievement, x, y, cardWidth, cardHeight, columns);
+        }
+      }
+
+      function drawAchievementCard(achievement, x, y, width, height, columns = 2) {
+        const rarityStyle = RARITY_STYLES[achievement.styleKey || achievement.rarity] || RARITY_STYLES.common;
+        const unlocked = Boolean((state.achievementUnlocks || {})[achievement.id]);
+        const medalSize = Math.min(width - 16, height - 52, columns === 3 ? 64 : 88);
+        const medalX = x + width / 2 - medalSize / 2;
+        const medalY = y + 8;
+        const titleBoxHeight = columns === 3 ? 34 : 36;
+        const titleBoxX = x + 8;
+        const titleBoxY = y + height - titleBoxHeight - 8;
+        const titleBoxWidth = width - 16;
+        const titleLines = achievement.titleLines || [achievement.title];
+        const titleFontSize = columns === 3 ? 10 : 11;
+        const statusFontSize = columns === 3 ? 10 : 12;
+
+        ctx.save();
+        ctx.fillStyle = unlocked ? 'rgba(246, 255, 222, 0.9)' : 'rgba(227, 233, 208, 0.88)';
+        roundedRect(x, y, width, height, 8);
+        ctx.strokeStyle = unlocked ? rarityStyle.stroke : 'rgba(116, 126, 98, 0.74)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = unlocked ? 'rgba(255, 255, 255, 0.26)' : 'rgba(255, 255, 255, 0.18)';
+        roundedRect(x + 4, y + 4, width - 8, height - 8, 7);
+
+        drawAchievementMedal(achievement, medalX, medalY, medalSize, unlocked, rarityStyle);
+
+        if (unlocked) {
+          ctx.fillStyle = rarityStyle.stroke;
+          ctx.beginPath();
+          ctx.arc(x + width - 14, y + 14, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = 'rgba(17, 35, 27, 0.3)';
+          ctx.beginPath();
+          ctx.arc(x + width / 2, medalY + medalSize / 2, medalSize / 2 - 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.font = `900 ${statusFontSize}px Arial, Helvetica, sans-serif`;
+          ctx.fillStyle = 'rgba(250, 251, 238, 0.95)';
+          ctx.fillText('未解锁', x + width / 2, medalY + medalSize / 2 + 1);
+        }
+
+        ctx.fillStyle = unlocked ? 'rgba(251, 255, 235, 0.96)' : 'rgba(238, 241, 227, 0.92)';
+        roundedRect(titleBoxX, titleBoxY, titleBoxWidth, titleBoxHeight, 6);
+        ctx.strokeStyle = unlocked ? rarityStyle.stroke : 'rgba(125, 114, 88, 0.42)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `900 ${titleFontSize}px Arial, Helvetica, sans-serif`;
+        ctx.fillStyle = unlocked ? rarityStyle.text : 'rgba(83, 76, 60, 0.92)';
+
+        if (titleLines.length === 1) {
+          ctx.fillText(titleLines[0], x + width / 2, titleBoxY + titleBoxHeight / 2 + 0.5);
+        } else {
+          ctx.fillText(titleLines[0], x + width / 2, titleBoxY + 11);
+          ctx.fillText(titleLines[1], x + width / 2, titleBoxY + 24);
+        }
+
+        ctx.restore();
+      }
+
+      function drawAchievementMedal(achievement, x, y, size, unlocked, rarityStyle) {
+        const asset = achievementMedalAssets[achievement.id];
+        if (asset && asset.ready && asset.image) {
+          ctx.save();
+          ctx.globalAlpha = unlocked ? 1 : 0.38;
+          ctx.drawImage(asset.image, x, y, size, size);
+          ctx.restore();
+          return;
+        }
+
+        drawAchievementFallbackMedal(x, y, size, unlocked, rarityStyle);
+      }
+
+      function drawAchievementFallbackMedal(x, y, size, unlocked, rarityStyle) {
+        const centerX = x + size / 2;
+        const centerY = y + size / 2;
+        const radius = size / 2;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.fillStyle = unlocked ? rarityStyle.fill : 'rgba(197, 203, 188, 0.92)';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = unlocked ? rarityStyle.stroke : 'rgba(116, 126, 98, 0.74)';
+        ctx.stroke();
+
+        ctx.font = '900 12px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = unlocked ? rarityStyle.text : 'rgba(83, 76, 60, 0.92)';
+        ctx.fillText(rarityStyle.label, centerX, centerY + 1);
+        ctx.restore();
+      }
+
+      function drawResultsPanel() {
+        const panelX = 42;
+        const panelY = 90;
+        const panelW = world.width - 84;
+        const panelH = 492;
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = 'rgba(8, 24, 22, 0.34)';
+        roundedRect(panelX + 5, panelY + 7, panelW, panelH, 8);
+        ctx.fillStyle = '#b48754';
+        roundedRect(panelX, panelY, panelW, panelH, 8);
+        ctx.strokeStyle = '#6f4d2e';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(224, 240, 198, 0.76)';
+        roundedRect(panelX + 8, panelY + 10, panelW - 16, panelH - 20, 7);
+        ctx.strokeStyle = 'rgba(69, 84, 55, 0.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(126, 87, 48, 0.48)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(panelX + 18, panelY + 16);
+        ctx.lineTo(panelX + panelW - 18, panelY + 16);
+        ctx.moveTo(panelX + 18, panelY + panelH - 16);
+        ctx.lineTo(panelX + panelW - 18, panelY + panelH - 16);
+        ctx.stroke();
+
+        ctx.font = '900 40px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText('结算', world.width / 2, panelY + 58);
+
+        ctx.fillStyle = 'rgba(246, 255, 198, 0.78)';
+        roundedRect(world.width / 2 - 56, panelY + 78, 112, 44, 4);
+        ctx.font = '900 23px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText('勋章', world.width / 2 - 22, panelY + 102);
+        ctx.fillText(String(getNewAchievementsThisRunCount()), world.width / 2 + 48, panelY + 102);
+
+        drawResultRow('本局得分', state.score, panelY + 146, panelX + 34, panelW - 68);
+        drawResultRow('最高分', state.best, panelY + 200, panelX + 34, panelW - 68);
+        drawResultRow('救援总数', state.rescueCount, panelY + 254, panelX + 34, panelW - 68);
+
+        ctx.font = '900 18px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(92, 70, 40, 0.92)';
+        ctx.fillText('保护鸟类，人人有责', world.width / 2, panelY + 304);
+
+        drawRaritySummary(panelX + 22, panelY + 350, panelW - 44);
+
+        ctx.fillStyle = 'rgba(224, 240, 198, 0.7)';
+        roundedRect(panelX + 10, panelY + 430, panelW - 20, 42, 6);
+        ctx.font = '900 19px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText('点击 / 触屏 打开开始面板', world.width / 2, panelY + 451);
+        ctx.restore();
+      }
+
+      function drawResultRow(label, value, y, rowX, rowW) {
+        ctx.fillStyle = 'rgba(246, 255, 198, 0.86)';
+        roundedRect(rowX, y - 25, rowW, 50, 4);
+        ctx.font = '900 24px Arial, Helvetica, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#3b160f';
+        ctx.fillText(`${label}:`, rowX + 34, y + 1);
+        ctx.textAlign = 'right';
+        ctx.fillText(String(value), rowX + rowW - 34, y + 1);
+        ctx.textAlign = 'center';
+      }
+
+      function drawRaritySummary(x, y, width) {
+        const counts = state.rescueRarityCounts || RangerRescueRules.createEmptyRarityCounts();
+        const rowHeight = 23;
+        const columnGap = 8;
+        const columnWidth = (width - columnGap) / 2;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(246, 255, 198, 0.72)';
+        roundedRect(x, y - 24, width, 96, 5);
+        ctx.strokeStyle = 'rgba(98, 126, 72, 0.72)';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        ctx.font = '900 15px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = '#3b160f';
+        ctx.textAlign = 'center';
+        ctx.fillText('释放统计', x + width / 2, y - 8);
+
+        const rarityKeys = RangerRescueRules.getRarityKeys();
+        for (let i = 0; i < rarityKeys.length; i += 1) {
+          const rarity = rarityKeys[i];
+          const style = RARITY_STYLES[rarity];
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          const itemX = x + col * (columnWidth + columnGap);
+          const itemY = y + row * rowHeight;
+
+          ctx.fillStyle = style.fill;
+          roundedRect(itemX, itemY, columnWidth, 19, 4);
+          ctx.strokeStyle = style.stroke;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          ctx.font = '900 13px Arial, Helvetica, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillStyle = style.text;
+          ctx.fillText(style.label, itemX + 8, itemY + 10.5);
+
+          ctx.textAlign = 'right';
+          ctx.fillText(`${counts[rarity] || 0}只`, itemX + columnWidth - 8, itemY + 10.5);
+        }
+
+        ctx.restore();
+      }
+
+      function drawTapHint(text, y) {
+        ctx.font = '700 16px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(21, 49, 58, 0.88)';
+        ctx.fillText(text, world.width / 2, y);
+      }
+
+      function roundedRect(x, y, width, height, radius) {
+        const r = Math.min(radius, Math.abs(width) / 2, Math.abs(height) / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + width - r, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+        ctx.lineTo(x + width, y + height - r);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        ctx.lineTo(x + r, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function frame(time) {
+        const delta = Math.min((time - state.lastTime) / 1000 || 0, 0.033);
+        state.lastTime = time;
+        update(delta);
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      window.addEventListener('resize', resize);
+      window.addEventListener('keydown', (event) => {
+        if (event.code === 'Space' || event.code === 'ArrowUp') {
+          event.preventDefault();
+          flap();
+        }
+      });
+      canvas.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+          return;
+        }
+
+        event.preventDefault();
+        const worldPoint = getWorldPointFromPointer(event);
+        if (handleOverlayPointer(worldPoint.x, worldPoint.y)) {
+          return;
+        }
+        flap();
+      });
+
+      preloadBackgroundImage();
+      preloadRangerSpriteAssets();
+      preloadRescueArtAssets();
+      preloadAchievementMedals();
+      resize();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

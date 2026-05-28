@@ -71,21 +71,7 @@ const preloadImageAssets = [
 const assetPreloadConcurrency = 4;
 const minimumLoaderMs = 1500;
 const matchesMedia = (win, query) => win.matchMedia?.(query)?.matches ?? false;
-const supportsWebpImages = (win) => {
-  const canvas = win.document?.createElement?.('canvas');
-
-  try {
-    return canvas?.toDataURL?.('image/webp')?.startsWith('data:image/webp') ?? true;
-  } catch (_error) {
-    return true;
-  }
-};
-
-const getPreloadAssetUrls = (win = window) => {
-  const selectedFormat = supportsWebpImages(win) ? 'webp' : 'fallback';
-
-  return preloadImageAssets.map((asset) => asset[selectedFormat]);
-};
+const getPreloadAssetUrls = () => preloadImageAssets.flatMap((asset) => [asset.webp, asset.fallback]);
 
 const queueFrame = (win, callback) => {
   if (win.requestAnimationFrame) {
@@ -123,17 +109,20 @@ const preloadImage = (win, url) => new Promise((resolve) => {
   image.src = url;
 });
 
-function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(win), options = {}) {
+function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(), options = {}) {
   const total = urls.length;
+  const fontsReady = win.document?.fonts?.ready?.catch?.(() => undefined)
+    ?? win.document?.fonts?.ready
+    ?? Promise.resolve();
 
   if (!total) {
-    return Promise.resolve({
+    return Promise.resolve(fontsReady).then(() => ({
       failed: 0,
       loaded: 0,
       ready: true,
       timedOut: false,
       total
-    });
+    }));
   }
 
   const concurrency = Math.max(1, Math.min(
@@ -144,7 +133,7 @@ function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(win), option
   let nextIndex = 0;
   let active = 0;
 
-  return new Promise((resolve) => {
+  const imagesReady = new Promise((resolve) => {
     const startNext = () => {
       if (nextIndex >= total && active === 0) {
         const loaded = results.filter((result) => result.ok).length;
@@ -176,6 +165,8 @@ function waitForSiteAssets(win = window, urls = getPreloadAssetUrls(win), option
 
     startNext();
   });
+
+  return imagesReady.then((summary) => Promise.resolve(fontsReady).then(() => summary));
 }
 
 const waitForMinimumLoaderTime = (win = window, duration = minimumLoaderMs) => new Promise((resolve) => {
