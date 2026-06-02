@@ -4,6 +4,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { loadScriptApi } from './script-api.mjs';
 
 const {
+  shouldUseLiteMode,
   shouldEnablePointerEffects
 } = loadScriptApi();
 
@@ -39,6 +40,13 @@ test('pointer-driven effects run only on fine hover devices', () => {
   assert.equal(shouldEnablePointerEffects(false, false), false);
   assert.equal(shouldEnablePointerEffects(true, false), false);
   assert.equal(shouldEnablePointerEffects(true, true), true);
+  assert.equal(shouldEnablePointerEffects(true, true, true), false);
+});
+
+test('low power devices use the lightweight rendering mode', () => {
+  assert.equal(shouldUseLiteMode({ deviceMemory: 2, hardwareConcurrency: 8 }), true);
+  assert.equal(shouldUseLiteMode({ deviceMemory: 8, hardwareConcurrency: 2 }), true);
+  assert.equal(shouldUseLiteMode({ deviceMemory: 4, hardwareConcurrency: 4 }), false);
 });
 
 test('mobile and coarse-pointer layouts drop the heaviest decorative layers', () => {
@@ -89,6 +97,39 @@ test('mobile and coarse-pointer layouts avoid expensive paint effects', () => {
     /mix-blend-mode:\s*normal/
   ].forEach((pattern) => {
     assert.match(mobilePerformanceBlock, pattern);
+  });
+});
+
+test('lightweight mode removes the desktop paint effects most likely to stutter', () => {
+  const css = read('styles.css');
+  const liteStart = css.indexOf('html.is-lite');
+  const liteEnd = css.indexOf('@media (prefers-reduced-motion: reduce)');
+
+  assert.notEqual(liteStart, -1, 'expected html.is-lite rules');
+  assert.notEqual(liteEnd, -1, 'expected reduced-motion rules after lite rules');
+
+  const liteBlock = css.slice(liteStart, liteEnd);
+
+  [
+    '.hero__backdrop::after',
+    '.hero__ambient',
+    '.section-deco',
+    '.body-diagram__blend',
+    '.hero__poster',
+    '.body-info__art',
+    '.profile-card__art'
+  ].forEach((selector) => {
+    assert.match(liteBlock, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  });
+
+  [
+    /animation:\s*none/,
+    /transition:\s*none/,
+    /filter:\s*none/,
+    /mix-blend-mode:\s*normal/,
+    /transform:\s*none/
+  ].forEach((pattern) => {
+    assert.match(liteBlock, pattern);
   });
 });
 

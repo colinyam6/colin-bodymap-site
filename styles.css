@@ -1708,6 +1708,62 @@ button {
   }
 }
 
+html.is-lite {
+  scroll-behavior: auto;
+}
+
+html.is-lite body.is-loaded .hero,
+html.is-lite body.is-loaded .site-main,
+html.is-lite body.is-loaded .site-footer,
+html.is-lite .site-loader__signal,
+html.is-lite .site-loader__signal::after,
+html.is-lite .site-loader__bar span,
+html.is-lite .hero__ember-field {
+  animation: none;
+}
+
+html.is-lite .hero__backdrop::after,
+html.is-lite .hero__copy::after,
+html.is-lite .hero__poster::before,
+html.is-lite .hero__poster::after,
+html.is-lite .hero__ambient,
+html.is-lite .section-deco,
+html.is-lite .body-diagram__poster::before,
+html.is-lite .body-diagram__poster::after,
+html.is-lite .body-diagram__blend {
+  display: none;
+}
+
+html.is-lite .hero__flare,
+html.is-lite .hero__stage-glow,
+html.is-lite .hero__poster,
+html.is-lite .body-diagram__glow,
+html.is-lite .body-diagram__poster,
+html.is-lite .body-info__art,
+html.is-lite .profile-card__art {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+html.is-lite .hero__body-stage,
+html.is-lite .profile-card,
+html.is-lite .profile-card:hover,
+html.is-lite .profile-card.is-tilting {
+  transform: none;
+}
+
+html.is-lite .reveal,
+html.is-lite .reveal.is-visible,
+html.is-lite .profile-card,
+html.is-lite .profile-card__art,
+html.is-lite .body-diagram__hotspot {
+  transition: none;
+}
+
+html.is-lite .body-diagram__hotspot {
+  backdrop-filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

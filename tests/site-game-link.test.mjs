@@ -31,3 +31,16 @@ test('Flappy Bird route is bundled with its runtime assets', () => {
     assert.ok(existsSync(new URL(asset, route)), `${asset} should be copied into the game route`);
   });
 });
+
+test('Flappy Bird widens the pipe gap and keeps the canvas recoverable', () => {
+  const html = read('games/flappy-bird/index.html');
+  const pipeGap = Number(html.match(/pipeGap:\s*(\d+)/)?.[1] || 0);
+
+  assert.ok(pipeGap >= 188, `expected pipe gap to be at least 188, got ${pipeGap}`);
+  assert.match(html, /MAX_CANVAS_PIXELS/);
+  assert.match(html, /handleGameError/);
+  assert.match(html, /renderFallbackNotice/);
+  assert.match(html, /safeRender/);
+  assert.match(html, /canvas\.addEventListener\('mousedown'/);
+  assert.match(html, /canvas\.addEventListener\('touchstart'/);
+});
