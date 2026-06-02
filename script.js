@@ -31,7 +31,19 @@ const getRevealOptions = (reducedMotion) => ({
   rootMargin: reducedMotion ? '0px 0px -6% 0px' : '0px 0px -12% 0px'
 });
 
-const shouldEnablePointerEffects = (hasFinePointer, hasHover) => hasFinePointer && hasHover;
+const shouldUseLiteMode = (navigatorLike = {}) => {
+  const memory = Number(navigatorLike.deviceMemory);
+  const cores = Number(navigatorLike.hardwareConcurrency);
+
+  return (
+    (Number.isFinite(memory) && memory <= 2) ||
+    (Number.isFinite(cores) && cores <= 2)
+  );
+};
+
+const shouldEnablePointerEffects = (hasFinePointer, hasHover, liteMode = false) => {
+  return hasFinePointer && hasHover && !liteMode;
+};
 
 const preloadImageAssets = [
   {
@@ -286,15 +298,18 @@ const initTiltCards = (doc, win, enablePointerEffects) => {
 
 function initSite(doc = document, win = window) {
   const reducedMotion = matchesMedia(win, '(prefers-reduced-motion: reduce)');
+  const liteMode = shouldUseLiteMode(win.navigator || {});
   const enablePointerEffects = !reducedMotion && shouldEnablePointerEffects(
     matchesMedia(win, '(pointer: fine)'),
-    matchesMedia(win, '(hover: hover)')
+    matchesMedia(win, '(hover: hover)'),
+    liteMode
   );
   const revealItems = [...doc.querySelectorAll('[data-reveal]')];
   const hero = doc.querySelector('[data-parallax-root]');
   const cta = doc.querySelector('.hero__cta');
 
   doc.documentElement.classList.add('js', 'is-ready');
+  doc.documentElement.classList.toggle('is-lite', liteMode);
   doc.documentElement.classList.toggle('reduce-motion', reducedMotion);
   doc.documentElement.classList.toggle('pointer-effects', enablePointerEffects);
 
@@ -386,6 +401,7 @@ async function bootSite(doc = document, win = window) {
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
+    document.documentElement.classList.toggle('is-lite', shouldUseLiteMode(window.navigator || {}));
     bootSite();
   });
 }
@@ -399,6 +415,7 @@ globalThis.ColinSite = {
   mapPointerToHeroState,
   mapPointerToTiltState,
   releaseLoadingScreen,
+  shouldUseLiteMode,
   shouldEnablePointerEffects,
   waitForMinimumLoaderTime,
   waitForSiteAssets

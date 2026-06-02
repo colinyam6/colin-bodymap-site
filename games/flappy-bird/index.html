@@ -35,7 +35,8 @@
   <script>
     (() => {
       const canvas = document.getElementById('game');
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+      const MAX_CANVAS_PIXELS = 1800000;
       const JUMP_SOUND_SRC = 'assets/jump.wav';
       const BACKGROUND_IMAGE_SOURCES = [
         'assets/jungle-background.png',
@@ -103,7 +104,7 @@
         pipeInterval: 1.65,
         pipeWidth: 62,
         pipeCullPadding: 6,
-        pipeGap: 152,
+        pipeGap: 192,
         rangerRadius: 15,
         rescueRadius: 18,
         rescueHorizontalOffset: 96,
@@ -348,8 +349,56 @@
         crashTimer: 0,
         groundShift: 0,
         rangerAnimationTime: 0,
-        lastTime: 0
+        lastTime: 0,
+        renderFailed: false,
+        fallbackMessage: ''
       };
+
+      function handleGameError(message, error) {
+        state.renderFailed = true;
+        state.fallbackMessage = message;
+        if (window.console && typeof window.console.warn === 'function') {
+          window.console.warn(message, error || '');
+        }
+        renderFallbackNotice(message);
+      }
+
+      function renderFallbackNotice(message) {
+        if (!canvas) {
+          return;
+        }
+
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', message);
+
+        if (!ctx) {
+          canvas.style.background = '#d1f1df';
+          return;
+        }
+
+        try {
+          const cssWidth = view.cssWidth || window.innerWidth || 360;
+          const cssHeight = view.cssHeight || window.innerHeight || 640;
+
+          ctx.setTransform(view.dpr || 1, 0, 0, view.dpr || 1, 0, 0);
+          ctx.fillStyle = '#d1f1df';
+          ctx.fillRect(0, 0, cssWidth, cssHeight);
+          ctx.fillStyle = '#15313a';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = '700 18px Arial, Helvetica, sans-serif';
+          ctx.fillText(message, cssWidth / 2, cssHeight / 2);
+          ctx.font = '700 14px Arial, Helvetica, sans-serif';
+          ctx.fillText('刷新页面可以重新尝试', cssWidth / 2, cssHeight / 2 + 30);
+        } catch (noticeError) {
+          canvas.style.background = '#d1f1df';
+        }
+      }
+
+      if (!canvas || !ctx) {
+        renderFallbackNotice('当前浏览器暂时不能启动游戏画布');
+        return;
+      }
 
       function readBestScore() {
         try {
@@ -845,7 +894,9 @@
       function resize() {
         view.cssWidth = window.innerWidth;
         view.cssHeight = window.innerHeight;
-        view.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rawDpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cssPixels = Math.max(1, view.cssWidth * view.cssHeight);
+        view.dpr = Math.min(rawDpr, Math.sqrt(MAX_CANVAS_PIXELS / cssPixels));
         view.scale = Math.min(
           view.cssWidth / world.width,
           view.cssHeight / world.height
@@ -955,6 +1006,32 @@
           x: (cssX - view.offsetX) / view.scale,
           y: (cssY - view.offsetY) / view.scale
         };
+      }
+
+      function handleGameInput(event) {
+        try {
+          if (event) {
+            event.preventDefault();
+          }
+
+          const sourceEvent = event && event.touches && event.touches[0]
+            ? event.touches[0]
+            : event;
+          const hasPointerPosition = sourceEvent &&
+            typeof sourceEvent.clientX === 'number' &&
+            typeof sourceEvent.clientY === 'number';
+
+          if (hasPointerPosition) {
+            const worldPoint = getWorldPointFromPointer(sourceEvent);
+            if (handleOverlayPointer(worldPoint.x, worldPoint.y)) {
+              return;
+            }
+          }
+
+          flap();
+        } catch (error) {
+          handleGameError('点击后游戏暂时无法继续', error);
+        }
       }
 
       function handleOverlayPointer(worldX, worldY) {
@@ -1266,6 +1343,21 @@
           drawScore();
           drawOverlay();
         });
+      }
+
+      function safeRender() {
+        if (state.renderFailed) {
+          renderFallbackNotice(state.fallbackMessage || '游戏画面暂时无法渲染');
+          return false;
+        }
+
+        try {
+          render();
+          return true;
+        } catch (error) {
+          handleGameError('游戏画面暂时无法渲染', error);
+          return false;
+        }
       }
 
       function clearCanvas() {
@@ -2762,16 +2854,23 @@
       function frame(time) {
         const delta = Math.min((time - state.lastTime) / 1000 || 0, 0.033);
         state.lastTime = time;
-        update(delta);
-        render();
-        requestAnimationFrame(frame);
+        try {
+          update(delta);
+        } catch (error) {
+          handleGameError('游戏状态暂时无法更新', error);
+          return;
+        }
+
+        if (safeRender()) {
+          requestAnimationFrame(frame);
+        }
       }
 
       window.addEventListener('resize', resize);
       window.addEventListener('keydown', (event) => {
         if (event.code === 'Space' || event.code === 'ArrowUp') {
           event.preventDefault();
-          flap();
+          handleGameInput();
         }
       });
       canvas.addEventListener('pointerdown', (event) => {
@@ -2779,12 +2878,21 @@
           return;
         }
 
-        event.preventDefault();
-        const worldPoint = getWorldPointFromPointer(event);
-        if (handleOverlayPointer(worldPoint.x, worldPoint.y)) {
+        handleGameInput(event);
+      });
+      canvas.addEventListener('mousedown', (event) => {
+        if (window.PointerEvent || event.button !== 0) {
           return;
         }
-        flap();
+
+        handleGameInput(event);
+      });
+      canvas.addEventListener('touchstart', (event) => {
+        if (window.PointerEvent) {
+          return;
+        }
+
+        handleGameInput(event);
       });
 
       preloadBackgroundImage();
