@@ -44,3 +44,27 @@ test('Flappy Bird widens the pipe gap and keeps the canvas recoverable', () => {
   assert.match(html, /canvas\.addEventListener\('mousedown'/);
   assert.match(html, /canvas\.addEventListener\('touchstart'/);
 });
+
+test('Flappy Bird narrows the pipe gap gradually with a safe lower bound', () => {
+  const html = read('games/flappy-bird/index.html');
+
+  assert.match(html, /basePipeGap:\s*208/);
+  assert.match(html, /minPipeGap:\s*166/);
+  assert.match(html, /pipeGapStep:\s*6/);
+  assert.match(html, /pipeGapEveryScore:\s*5/);
+  assert.match(html, /function getCurrentPipeGap\(\)/);
+  assert.match(html, /Math\.floor\(state\.score\s*\/\s*settings\.pipeGapEveryScore\)/);
+  assert.match(html, /Math\.max\(settings\.minPipeGap/);
+});
+
+test('Flappy Bird keeps animating when one render layer fails', () => {
+  const html = read('games/flappy-bird/index.html');
+
+  assert.match(html, /function drawLayerSafely\(label,\s*draw\)/);
+  assert.match(html, /drawLayerSafely\('background'/);
+  assert.match(html, /drawLayerSafely\('obstacles'/);
+  assert.match(html, /drawLayerSafely\('ranger'/);
+  assert.match(html, /function drawImageSafely\(label,\s*image,/);
+  assert.match(html, /state\.renderWarnings/);
+  assert.doesNotMatch(html, /state\.renderFailed\s*=\s*true;/);
+});
