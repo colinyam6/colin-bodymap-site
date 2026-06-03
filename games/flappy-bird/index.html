@@ -104,7 +104,11 @@
         pipeInterval: 1.65,
         pipeWidth: 62,
         pipeCullPadding: 6,
-        pipeGap: 192,
+        pipeGap: 208,
+        basePipeGap: 208,
+        minPipeGap: 166,
+        pipeGapStep: 6,
+        pipeGapEveryScore: 5,
         rangerRadius: 15,
         rescueRadius: 18,
         rescueHorizontalOffset: 96,
@@ -351,16 +355,27 @@
         rangerAnimationTime: 0,
         lastTime: 0,
         renderFailed: false,
-        fallbackMessage: ''
+        fallbackMessage: '',
+        renderWarnings: {}
       };
 
       function handleGameError(message, error) {
-        state.renderFailed = true;
         state.fallbackMessage = message;
         if (window.console && typeof window.console.warn === 'function') {
           window.console.warn(message, error || '');
         }
         renderFallbackNotice(message);
+      }
+
+      function warnRenderIssue(label, error) {
+        state.renderWarnings[label] = (state.renderWarnings[label] || 0) + 1;
+        if (
+          state.renderWarnings[label] <= 3 &&
+          window.console &&
+          typeof window.console.warn === 'function'
+        ) {
+          window.console.warn(`Skipping ${label} render layer`, error || '');
+        }
       }
 
       function renderFallbackNotice(message) {
@@ -855,9 +870,10 @@
           };
         },
         createRescueTarget(obstacle, settings, randomValue = Math.random()) {
+          const gap = Number.isFinite(obstacle.gap) ? obstacle.gap : settings.pipeGap;
           return {
             x: obstacle.x + settings.pipeWidth + settings.rescueHorizontalOffset,
-            y: obstacle.top + settings.pipeGap / 2,
+            y: obstacle.top + gap / 2,
             radius: settings.rescueRadius,
             rescued: false,
             species: this.selectBirdSpecies(randomValue)
@@ -993,6 +1009,15 @@
         );
       }
 
+      function getCurrentPipeGap() {
+        const difficultyStep = Math.floor(state.score / settings.pipeGapEveryScore);
+        return Math.max(settings.minPipeGap, settings.basePipeGap - difficultyStep * settings.pipeGapStep);
+      }
+
+      function getPipeGap(pipe) {
+        return Number.isFinite(pipe && pipe.gap) ? pipe.gap : settings.pipeGap;
+      }
+
       function getWorldPointFromPointer(event) {
         const bounds = typeof canvas.getBoundingClientRect === 'function'
           ? canvas.getBoundingClientRect()
@@ -1089,12 +1114,14 @@
 
       function spawnPipe() {
         const minTop = 84;
-        const maxTop = world.groundY - settings.pipeGap - 104;
+        const pipeGap = getCurrentPipeGap();
+        const maxTop = Math.max(minTop, world.groundY - pipeGap - 104);
         const top = minTop + Math.random() * (maxTop - minTop);
         const obstacleNumber = state.nextObstacleVariant + 1;
         const pipe = {
           x: world.width + 26,
           top,
+          gap: pipeGap,
           variant: state.nextObstacleVariant % OBSTACLE_THEMES.length,
           passed: false
         };
@@ -1235,6 +1262,7 @@
         const rangerBox = getRangerObstacleHitbox();
 
         for (const pipe of state.pipes) {
+          const pipeGap = getPipeGap(pipe);
           const topHit = rectsOverlap(
             rangerBox.x,
             rangerBox.y,
@@ -1245,7 +1273,7 @@
             settings.pipeWidth,
             pipe.top + 20
           );
-          const bottomY = pipe.top + settings.pipeGap;
+          const bottomY = pipe.top + pipeGap;
           const bottomHit = rectsOverlap(
             rangerBox.x,
             rangerBox.y,
@@ -1333,16 +1361,34 @@
       function render() {
         clearCanvas();
         withWorld(() => {
-          drawGameBackground();
-          drawBackgroundStoryScenes();
-          drawObstacles();
-          drawRescueTarget();
-          drawRescueBirds();
-          drawGround();
-          drawRanger();
-          drawScore();
-          drawOverlay();
+          drawLayerSafely('background', drawGameBackground);
+          drawLayerSafely('story', drawBackgroundStoryScenes);
+          drawLayerSafely('obstacles', drawObstacles);
+          drawLayerSafely('rescue target', drawRescueTarget);
+          drawLayerSafely('rescue birds', drawRescueBirds);
+          drawLayerSafely('ground', drawGround);
+          drawLayerSafely('ranger', drawRanger);
+          drawLayerSafely('score', drawScore);
+          drawLayerSafely('overlay', drawOverlay);
         });
+      }
+
+      function drawLayerSafely(label, draw) {
+        try {
+          draw();
+        } catch (error) {
+          warnRenderIssue(label, error);
+        }
+      }
+
+      function drawImageSafely(label, image, ...args) {
+        try {
+          ctx.drawImage(image, ...args);
+          return true;
+        } catch (error) {
+          warnRenderIssue(label, error);
+          return false;
+        }
       }
 
       function safeRender() {
@@ -1417,8 +1463,18 @@
           sourceY = (image.height - sourceHeight) / 2;
         }
 
-        ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, world.width, world.height);
-        return true;
+        return drawImageSafely(
+          'background image',
+          image,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          0,
+          0,
+          world.width,
+          world.height
+        );
       }
 
       function drawSky() {
@@ -1467,8 +1523,9 @@
 
       function drawObstacles() {
         for (const pipe of state.pipes) {
+          const pipeGap = getPipeGap(pipe);
           drawForestObstacle(pipe.x, -24, pipe.top + 24, true, pipe.variant);
-          drawForestObstacle(pipe.x, pipe.top + settings.pipeGap, world.groundY - pipe.top - settings.pipeGap, false, pipe.variant);
+          drawForestObstacle(pipe.x, pipe.top + pipeGap, world.groundY - pipe.top - pipeGap, false, pipe.variant);
         }
       }
 
@@ -1923,7 +1980,11 @@
         ctx.save();
         ctx.translate(target.x, target.y);
         if (rescueCageAsset.ready && rescueCageAsset.image) {
-          ctx.drawImage(rescueCageAsset.image, -26, -50, 52, 82);
+          if (!drawImageSafely('rescue cage image', rescueCageAsset.image, -26, -50, 52, 82)) {
+            drawCagedBird();
+            drawRescueCage();
+            drawCageVeil();
+          }
         } else {
           drawCagedBird();
           drawRescueCage();
@@ -2041,7 +2102,9 @@
           ctx.rotate(-0.18 + Math.sin(bird.age * 9) * 0.08);
           const spriteAsset = getRescueBirdSpriteAsset(bird.species, bird.age);
           if (spriteAsset && spriteAsset.ready && spriteAsset.image) {
-            ctx.drawImage(spriteAsset.image, -36, -24, 72, 48);
+            if (!drawImageSafely('rescue bird image', spriteAsset.image, -36, -24, 72, 48)) {
+              drawSpeciesBird(bird.species, 0.78, Math.sin(bird.age * 24));
+            }
           } else {
             drawSpeciesBird(bird.species, 0.78, Math.sin(bird.age * 24));
           }
@@ -2383,7 +2446,7 @@
       function drawRangerSprite(image) {
         const width = settings.rangerSpriteWidth;
         const height = settings.rangerSpriteHeight;
-        ctx.drawImage(image, -width / 2, -height / 2, width, height);
+        return drawImageSafely('ranger image', image, -width / 2, -height / 2, width, height);
       }
 
       function drawRangerVectorFallback() {
@@ -2431,7 +2494,9 @@
         ctx.rotate(ranger.rotation);
 
         if (spriteAsset && spriteAsset.ready && spriteAsset.image) {
-          drawRangerSprite(spriteAsset.image);
+          if (!drawRangerSprite(spriteAsset.image)) {
+            drawRangerVectorFallback();
+          }
         } else {
           drawRangerVectorFallback();
         }
@@ -2683,9 +2748,11 @@
         if (asset && asset.ready && asset.image) {
           ctx.save();
           ctx.globalAlpha = unlocked ? 1 : 0.38;
-          ctx.drawImage(asset.image, x, y, size, size);
+          const imageDrawn = drawImageSafely('achievement medal image', asset.image, x, y, size, size);
           ctx.restore();
-          return;
+          if (imageDrawn) {
+            return;
+          }
         }
 
         drawAchievementFallbackMedal(x, y, size, unlocked, rarityStyle);
@@ -2858,12 +2925,11 @@
           update(delta);
         } catch (error) {
           handleGameError('游戏状态暂时无法更新', error);
-          return;
+          showStartPanel();
         }
 
-        if (safeRender()) {
-          requestAnimationFrame(frame);
-        }
+        safeRender();
+        requestAnimationFrame(frame);
       }
 
       window.addEventListener('resize', resize);
